@@ -35,20 +35,29 @@ select option{background:var(--panel);}
 .btn-ghost{background:transparent;border-color:var(--border);color:var(--muted);}
 .btn-ghost:hover{border-color:var(--gold);color:var(--straw);}
 
+/* STICKY TOP BAR */
+#sticky-bar{position:sticky;top:0;z-index:100;}
+
 /* SETTINGS */
 #settings-bar{background:var(--panel);border-bottom:1px solid var(--border2);padding:.6rem 1.5rem;display:none;gap:.8rem;align-items:center;flex-wrap:wrap;}
 #settings-bar.open{display:flex;}
 .sg{display:flex;align-items:center;gap:.4rem;font-size:13px;color:var(--muted);}
 #settings-bar input{width:240px;font-size:13px;}
 
-/* OVERVIEW */
-#overview{background:var(--panel);border-bottom:1px solid var(--border2);padding:.75rem 1.5rem;
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.6rem;}
-.sc{background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:.5rem .75rem;text-align:center;}
-.sl{font-size:10px;letter-spacing:.08em;color:var(--muted);font-family:var(--font-d);text-transform:uppercase;}
-.sv{font-size:1.25rem;font-weight:600;color:var(--straw);font-family:var(--font-d);line-height:1.2;}
+/* OVERVIEW — sticky below header */
+#overview{background:var(--panel);border-bottom:1px solid var(--border2);padding:.6rem 1.5rem;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.5rem;}
+.sc{background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:.4rem .65rem;text-align:center;}
+.sl{font-size:9px;letter-spacing:.08em;color:var(--muted);font-family:var(--font-d);text-transform:uppercase;}
+.sv{font-size:1.15rem;font-weight:600;color:var(--straw);font-family:var(--font-d);line-height:1.2;}
+.sc-gold .sv{color:var(--gold);}
 .pbw{background:var(--panel2);border-radius:2px;height:3px;margin-top:3px;}
 .pbf{height:3px;border-radius:2px;background:var(--accent);transition:width .3s;}
+/* gold input inside stat card */
+.gold-input{width:80px;background:transparent;border:none;border-bottom:1px solid var(--border);
+  color:var(--gold);font-family:var(--font-d);font-size:1.15rem;font-weight:600;text-align:center;
+  outline:none;padding:0;}
+.gold-input:focus{border-bottom-color:var(--gold);}
 
 /* TABS */
 #tabs{display:flex;background:var(--panel);border-bottom:2px solid var(--border2);padding:0 1.5rem;overflow-x:auto;}
@@ -94,7 +103,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .ir.on .ick{background:var(--success);border-color:var(--success);}
 .ir.on .ick::after{content:'';position:absolute;left:2px;top:3px;width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);}
 .in{font-size:13px;color:var(--text);flex:1;line-height:1.3;}
-.ir.on .in{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted2);}
+.ir.on .in{color:var(--muted);}
 .isb{font-size:11px;color:var(--muted2);margin-top:1px;}
 .ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:4px;margin-bottom:.75rem;}
 
@@ -118,7 +127,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .cr.on{background:var(--success2);border-color:rgba(58,122,64,.25);}
 .cr.on .ick{background:var(--success);border-color:var(--success);}
 .cr.on .ick::after{content:'';position:absolute;left:2px;top:3px;width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);}
-.cr.on .crq{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted2);}
+.cr.on .crq{color:var(--muted);}
 .clv{font-size:10px;font-family:var(--font-d);color:var(--gold);flex-shrink:0;width:44px;padding-top:2px;}
 .crq{font-size:13px;color:var(--text);}
 .crr{font-size:11px;color:var(--muted2);margin-top:1px;}
@@ -141,7 +150,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 
 /* TRAPPER INVENTORY */
 .trapper-layout{display:grid;grid-template-columns:280px 1fr;gap:1rem;align-items:start;}
-.inv-panel{background:var(--panel);border:1px solid var(--border2);border-radius:6px;padding:12px;position:sticky;top:70px;}
+.inv-panel{background:var(--panel);border:1px solid var(--border2);border-radius:6px;padding:12px;position:sticky;top:var(--sticky-top,180px);max-height:calc(100vh - var(--sticky-top,180px) - 20px);overflow-y:auto;}
 .inv-title{font-family:var(--font-d);font-size:.75rem;letter-spacing:.09em;color:var(--gold);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border2);}
 .inv-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #1a1428;}
 .inv-item:last-child{border-bottom:none;}
@@ -160,7 +169,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .tr-row.can.on{background:var(--success2);border-color:rgba(58,122,64,.35);}
 .tr-top{display:flex;align-items:center;gap:8px;}
 .tr-name{flex:1;font-size:13px;color:var(--text);}
-.tr-row.on .tr-name{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted2);}
+.tr-row.on .tr-name{color:var(--muted);}
 .can-badge{font-size:9px;font-family:var(--font-d);letter-spacing:.05em;padding:2px 7px;border-radius:2px;
   background:var(--can-craft-b);color:#a0d8f0;flex-shrink:0;}
 .tr-mats{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
@@ -174,7 +183,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .pe-item.on{background:var(--success2);border-color:rgba(58,122,64,.3);}
 .pe-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;}
 .pe-name{flex:1;font-size:13px;color:var(--text);font-weight:600;}
-.pe-item.on .pe-name{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted2);}
+.pe-item.on .pe-name{color:var(--muted);}
 .pe-reqs{display:flex;flex-wrap:wrap;gap:5px;padding-left:23px;}
 .pe-req{display:flex;align-items:center;gap:5px;cursor:pointer;padding:2px 0;}
 .pe-req-name{font-size:12px;color:var(--muted);}
@@ -186,7 +195,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .sa-row.on{background:var(--success2);border-color:rgba(58,122,64,.3);}
 .sa-header{display:flex;align-items:center;gap:8px;cursor:pointer;}
 .sa-name{flex:1;font-size:13px;color:var(--text);}
-.sa-row.on .sa-name{color:var(--muted);text-decoration:line-through;}
+.sa-row.on .sa-name{color:var(--muted);}
 .sa-mats{padding:5px 0 2px 23px;display:flex;flex-wrap:wrap;gap:5px;}
 .sa-mat{display:flex;align-items:center;gap:4px;cursor:pointer;}
 .sa-mat-name{font-size:11px;color:var(--muted);}
@@ -197,7 +206,6 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .ct td{padding:5px 8px;border-bottom:1px solid #12101a;vertical-align:top;}
 .ct tr:hover td{background:var(--panel2);}
 .ct tr.cdone td{opacity:.4;}
-.ct tr.cdone .cn{text-decoration:line-through;}
 .cloc{color:var(--muted);font-size:12px;}
 .ccc{width:34px;text-align:center;cursor:pointer;}
 
@@ -227,6 +235,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 </style>
 </head>
 <body>
+<div id="sticky-bar">
 <header>
   <div class="brand">RDR2 <span>✦</span> TRACKER</div>
   <div class="ptc">
@@ -253,6 +262,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <div class="sc"><div class="sl">Story</div><div class="sv" id="ov-st">0/—</div><div class="pbw"><div class="pbf" id="pb-st" style="width:0%"></div></div></div>
   <div class="sc"><div class="sl">Cig. Cards</div><div class="sv" id="ov-ci">0/144</div><div class="pbw"><div class="pbf" id="pb-ci" style="width:0%"></div></div></div>
   <div class="sc"><div class="sl">Overall</div><div class="sv" id="ov-tot">0%</div><div class="pbw"><div class="pbf" id="pb-tot" style="width:0%;background:var(--gold)"></div></div></div>
+  <div class="sc sc-gold"><div class="sl">💰 Gold</div><input type="number" class="gold-input" id="gold-val" min="0" step="0.01" placeholder="0.00" oninput="saveGold(this.value)" title="Current gold amount"/></div>
 </div>
 <div id="tabs">
   <button class="tb active" onclick="showTab('animals',this)">Animals</button>
@@ -268,6 +278,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <button class="tb" onclick="showTab('achieve',this)">Achievements</button>
   <button class="tb" onclick="showTab('cigs',this)">Cigarette Cards</button>
 </div>
+</div><!-- end sticky-bar -->
 <main>
   <div id="nopt" class="vis"><h2>No Playthrough Selected</h2><p>Create or select a playthrough to begin tracking.</p><button class="btn btn-gold" onclick="openMo()">+ Create Playthrough</button></div>
   <div id="tab-animals"    class="tp active"></div>
