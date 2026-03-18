@@ -218,8 +218,18 @@ function buildHorses() {
   let html = '';
   breeds.forEach(breed => {
     const coats = HO.map((h,i)=>({h,i})).filter(({h})=>h[0]===breed);
-    const tot = coats.length * 3;
+    // hasHorseman: breed counts for Horseman challenge if any coat has flag set
+    const hasHorseman = coats.some(({h})=>h[4]===1);
+    const tot = coats.length * 3 + (hasHorseman ? 1 : 0);
     html += `<div class="sh"><span class="st">${breed}</span><span class="sp" id="hp_${slug(breed)}">0/${tot}</span></div>`;
+    // Horseman row — one per breed
+    if (hasHorseman) {
+      const hmId = `ho_hm_${slug(breed)}`;
+      html += `<div class="mr" id="mr_${hmId}" style="background:rgba(40,96,128,.12);border-color:rgba(42,96,128,.3);margin-bottom:6px">
+        <div class="ml" style="color:var(--straw);font-size:12px;font-family:var(--font-d);letter-spacing:.05em">HORSEMAN CHALLENGE</div>
+        <div class="mcc"><div class="mc" onclick="toggleSimple('${hmId}')"><div class="mcl">COMPLETE</div><div class="mb" id="mb_${hmId}"></div></div></div>
+      </div>`;
+    }
     coats.forEach(({h,i}) => {
       html += mcRow('ho_',i,h[1],[h[2],h[3],h[4]].slice(0,3),HO_COLS);
     });
@@ -442,7 +452,7 @@ function checkPeItemDone(i) {
 function buildChallenges() {
   const el = document.getElementById('tab-challenges');
   let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem;">
-    <button class="btn btn-ghost" onclick="collapseAllChal()">Collapse All</button>
+    <button class="btn btn-ghost" id="chal-toggle-btn" onclick="toggleAllChal()">Collapse All</button>
   </div>`;
   Object.entries(CH).forEach(([set,tasks]) => {
     const sid = slug(set);
@@ -470,12 +480,15 @@ function toggleColl(prefix, sid) {
   document.getElementById(`${prefix}b_${sid}`)?.classList.toggle('open');
 }
 
-function collapseAllChal() {
+function toggleAllChal() {
+  const btn = document.getElementById('chal-toggle-btn');
+  const anyOpen = Object.keys(CH).some(set => document.getElementById(`chh_${slug(set)}`)?.classList.contains('open'));
   Object.keys(CH).forEach(set => {
     const sid = slug(set);
-    document.getElementById(`chh_${sid}`)?.classList.remove('open');
-    document.getElementById(`chb_${sid}`)?.classList.remove('open');
+    document.getElementById(`chh_${sid}`)?.classList.toggle('open', !anyOpen);
+    document.getElementById(`chb_${sid}`)?.classList.toggle('open', !anyOpen);
   });
+  if (btn) btn.textContent = anyOpen ? 'Expand All' : 'Collapse All';
 }
 
 // ── STORY ──
@@ -518,7 +531,7 @@ function buildAchieve() {
 function buildCigs() {
   const el = document.getElementById('tab-cigs');
   let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem;">
-    <button class="btn btn-ghost" onclick="collapseAllCigs()">Collapse All</button>
+    <button class="btn btn-ghost" id="cig-toggle-btn" onclick="toggleAllCigs()">Collapse All</button>
   </div>`;
   Object.entries(CIG).forEach(([set,{reward,cards}]) => {
     const sid = slug(set);
@@ -547,12 +560,15 @@ function buildCigs() {
   el.innerHTML = html;
 }
 
-function collapseAllCigs() {
+function toggleAllCigs() {
+  const btn = document.getElementById('cig-toggle-btn');
+  const anyOpen = Object.keys(CIG).some(set => document.getElementById(`cigh_${slug(set)}`)?.classList.contains('open'));
   Object.keys(CIG).forEach(set => {
     const sid = slug(set);
-    document.getElementById(`cigh_${sid}`)?.classList.remove('open');
-    document.getElementById(`cigb_${sid}`)?.classList.remove('open');
+    document.getElementById(`cigh_${sid}`)?.classList.toggle('open', !anyOpen);
+    document.getElementById(`cigb_${sid}`)?.classList.toggle('open', !anyOpen);
   });
+  if (btn) btn.textContent = anyOpen ? 'Expand All' : 'Collapse All';
 }
 
 // ═══════════════════ INTERACTIONS ═══════════════════
@@ -632,6 +648,16 @@ function renderAllChecks() {
     row.classList.toggle('done', allOn);
   });
 
+  // horseman breed checkboxes
+  const hmBreeds = [...new Set(HO.map(h=>h[0]))];
+  hmBreeds.forEach(breed => {
+    if (!HO.filter(h=>h[0]===breed).some(h=>h[4]===1)) return;
+    const hmId = `ho_hm_${slug(breed)}`;
+    const on = !!d[hmId];
+    document.getElementById(`mb_${hmId}`)?.classList.toggle('on', on);
+    document.getElementById(`mr_${hmId}`)?.classList.toggle('done', on);
+  });
+
   // trapper
   TR.forEach((t,i) => {
     const on = !!d[`tr_${i}`];
@@ -704,10 +730,16 @@ function updateOverview() {
   FI.filter(f=>f[1]).forEach((_,i)=>{fiTot++;if(d[`fl_${i}_0`])fiDon++;});
   setTxt('ov-fi',`${fiDon}/${fiTot}`); setBar('pb-fi',fiTot?fiDon/fiTot*100:0);
 
-  // Horses (studied/bonded/ridden per coat)
+  // Horses (studied/bonded/ridden per coat + 1 horseman per qualifying breed)
   let hoTot=0,hoDon=0;
   HO.forEach((h,i)=>{
     [h[2],h[3],h[4]].forEach((v,j)=>{if(v){hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}});
+  });
+  const hoBreeds=[...new Set(HO.map(h=>h[0]))];
+  hoBreeds.forEach(breed=>{
+    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
+      hoTot++; if(d[`ho_hm_${slug(breed)}`])hoDon++;
+    }
   });
   setTxt('ov-ho',`${hoDon}/${hoTot}`); setBar('pb-ho',hoTot?hoDon/hoTot*100:0);
 
@@ -760,10 +792,13 @@ function updateSectionProgress(d) {
   { let tot=0,don=0;
     FI.filter(f=>f[1]).forEach((_,i)=>{ tot++; if(d[`fl_${i}_0`]) don++; });
     setTxt('fp_leg',`${don}/${tot}`); }
-  // Horses by breed
+  // Horses by breed (coats + horseman per breed)
   [...new Set(HO.map(h=>h[0]))].forEach(breed=>{
     let tot=0,don=0;
     HO.forEach((h,i)=>{if(h[0]!==breed)return;[h[2],h[3],h[4]].forEach((v,j)=>{if(v){tot++;if(d[`ho_${i}_${j}`])don++;}});});
+    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
+      tot++; if(d[`ho_hm_${slug(breed)}`])don++;
+    }
     setTxt(`hp_${slug(breed)}`,`${don}/${tot}`);
   });
   // Weapons
