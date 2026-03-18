@@ -59,12 +59,24 @@ select option{background:var(--panel);}
   outline:none;padding:0;}
 .gold-input:focus{border-bottom-color:var(--gold);}
 
-/* TABS */
-#tabs{display:flex;background:var(--panel);border-bottom:2px solid var(--border2);padding:0 1.5rem;overflow-x:auto;}
-.tb{font-family:var(--font-d);font-size:10px;letter-spacing:.07em;font-weight:600;padding:11px 14px;border:none;
-  border-bottom:2px solid transparent;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;margin-bottom:-2px;}
-.tb:hover{color:var(--straw);}
-.tb.active{color:var(--straw);border-bottom-color:var(--gold);}
+/* TABS — Option C: active label + dropdown grid */
+#tabs-bar{background:var(--panel);border-bottom:1px solid var(--border2);padding:0 1.5rem;
+  display:flex;align-items:center;gap:10px;height:42px;}
+#tabs-active-label{font-family:var(--font-d);font-size:11px;letter-spacing:.07em;font-weight:600;
+  color:var(--straw);flex:1;}
+#tabs-menu-btn{font-family:var(--font-d);font-size:10px;font-weight:600;letter-spacing:.06em;
+  padding:5px 12px;border-radius:3px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0;}
+#tabs-menu-btn:hover{border-color:var(--gold);color:var(--straw);}
+#tabs-menu-btn.open{border-color:var(--gold);color:var(--straw);background:rgba(232,176,32,.08);}
+#tabs-dropdown{display:none;background:var(--panel);border-bottom:2px solid var(--border);
+  padding:8px 1.5rem;flex-wrap:wrap;gap:4px;}
+#tabs-dropdown.open{display:flex;}
+.tb{font-family:var(--font-d);font-size:10px;letter-spacing:.06em;font-weight:600;
+  padding:5px 11px;border-radius:3px;border:1px solid var(--border2);background:transparent;
+  color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.tb:hover{border-color:var(--border);color:var(--straw);}
+.tb.active{background:rgba(232,176,32,.12);border-color:rgba(232,176,32,.45);color:var(--straw);}
 
 /* MAIN */
 main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
@@ -231,7 +243,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 #nopt p{color:var(--muted);margin-bottom:1.25rem;}
 
 @media(max-width:900px){.trapper-layout{grid-template-columns:1fr;}.inv-panel{position:static;}}
-@media(max-width:700px){header{flex-direction:column;align-items:flex-start;padding:.6rem 1rem;min-height:auto;}main{padding:.9rem 1rem;}.mc{width:52px;}}
+@media(max-width:700px){header{flex-direction:column;align-items:flex-start;padding:.6rem 1rem;min-height:auto;}main{padding:.9rem 1rem;}.mc{width:52px;}#tabs-dropdown{padding:8px 1rem;}}
 </style>
 </head>
 <body>
@@ -264,19 +276,23 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <div class="sc"><div class="sl">Overall</div><div class="sv" id="ov-tot">0%</div><div class="pbw"><div class="pbf" id="pb-tot" style="width:0%;background:var(--gold)"></div></div></div>
   <div class="sc sc-gold"><div class="sl">💰 Gold</div><input type="number" class="gold-input" id="gold-val" min="0" step="0.01" placeholder="0.00" oninput="saveGold(this.value)" title="Current gold amount"/></div>
 </div>
-<div id="tabs">
-  <button class="tb active" onclick="showTab('animals',this)">Animals</button>
-  <button class="tb" onclick="showTab('plants',this)">Plants</button>
-  <button class="tb" onclick="showTab('fish',this)">Fish</button>
-  <button class="tb" onclick="showTab('horses',this)">Horses</button>
-  <button class="tb" onclick="showTab('weapons',this)">Weapons</button>
-  <button class="tb" onclick="showTab('equip',this)">Equipment</button>
-  <button class="tb" onclick="showTab('trapper',this)">Trapper</button>
-  <button class="tb" onclick="showTab('pearson',this)">Pearson</button>
-  <button class="tb" onclick="showTab('challenges',this)">Challenges</button>
-  <button class="tb" onclick="showTab('story',this)">Story</button>
-  <button class="tb" onclick="showTab('achieve',this)">Achievements</button>
-  <button class="tb" onclick="showTab('cigs',this)">Cigarette Cards</button>
+<div id="tabs-bar">
+  <span id="tabs-active-label">▸ Animals</span>
+  <button id="tabs-menu-btn" onclick="toggleTabsMenu()">☰ Sections</button>
+</div>
+<div id="tabs-dropdown">
+  <button class="tb active" onclick="showTab('animals',this,'Animals')">Animals</button>
+  <button class="tb" onclick="showTab('plants',this,'Plants')">Plants</button>
+  <button class="tb" onclick="showTab('fish',this,'Fish')">Fish</button>
+  <button class="tb" onclick="showTab('horses',this,'Horses')">Horses</button>
+  <button class="tb" onclick="showTab('weapons',this,'Weapons')">Weapons</button>
+  <button class="tb" onclick="showTab('equip',this,'Equipment')">Equipment</button>
+  <button class="tb" onclick="showTab('trapper',this,'Trapper')">Trapper</button>
+  <button class="tb" onclick="showTab('pearson',this,'Pearson')">Pearson</button>
+  <button class="tb" onclick="showTab('challenges',this,'Challenges')">Challenges</button>
+  <button class="tb" onclick="showTab('story',this,'Story')">Story</button>
+  <button class="tb" onclick="showTab('achieve',this,'Achievements')">Achievements</button>
+  <button class="tb" onclick="showTab('cigs',this,'Cig. Cards')">Cig. Cards</button>
 </div>
 </div><!-- end sticky-bar -->
 <main>
