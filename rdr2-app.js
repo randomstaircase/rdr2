@@ -176,18 +176,30 @@ function buildPlants() {
   el.innerHTML = html;
 }
 
-// ── FISH (caught only) ──
+// ── FISH: Caught/Baited/Survivalist for regular; Caught-only for legendary ──
+const FI_COLS_NORM = ['CAUGHT','BAITED','SURVIVALIST'];
+
 function buildFish() {
   const el = document.getElementById('tab-fish');
   const normal = FI.filter(f=>!f[1]);
   const leg    = FI.filter(f=>f[1]);
-  let html = secHdr(`Fish (${normal.length} species)`, 'fp_fish', normal.length);
+
+  // calculate total checkboxes for regular fish (3 per fish)
+  const normTot = normal.length * 3;
+  let html = secHdr(`Fish (${normal.length} species)`, 'fp_fish', normTot);
   normal.forEach((f,i) => {
+    const cells = FI_COLS_NORM.map((lbl,j) =>
+      `<div class="mc" onclick="toggleMC('fi_${i}',${j})">
+        <div class="mcl">${lbl}</div>
+        <div class="mb" id="mb_fi_${i}_${j}"></div>
+      </div>`
+    ).join('');
     html += `<div class="mr" id="mr_fi_${i}">
       <div class="ml">${f[0]}</div>
-      <div class="mcc"><div class="mc" onclick="toggleMC('fi_${i}',0)"><div class="mcl">CAUGHT</div><div class="mb" id="mb_fi_${i}_0"></div></div></div>
+      <div class="mcc">${cells}</div>
     </div>`;
   });
+
   html += '<div class="orn">✦ ✦ ✦</div>';
   html += secHdr(`Legendary Fish (${leg.length})`, 'fp_leg', leg.length);
   leg.forEach((f,i) => {
@@ -303,7 +315,21 @@ function refreshTrapperCan() {
     const crafted = !!d[`tr_${i}`];
     const can = !crafted && canCraft(i);
     row.classList.toggle('can', can);
-    if (badge) badge.style.display = (can && !crafted) ? '' : 'none';
+    if (badge) {
+      if (crafted) {
+        badge.textContent = 'CRAFTED';
+        badge.style.background = 'var(--success)';
+        badge.style.color = '#d0ffd8';
+        badge.style.display = '';
+      } else if (can) {
+        badge.textContent = 'CAN CRAFT';
+        badge.style.background = 'var(--can-craft-b)';
+        badge.style.color = '#a0d8f0';
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
     // update chips
     t[2].forEach(([m,q]) => {
       const chip = document.getElementById(`chip_tr_${i}_${slug(m)}`);
@@ -412,21 +438,23 @@ function checkPeItemDone(i) {
   if (ick) ick.classList.toggle('on', allDone);
 }
 
-// ── CHALLENGES (collapsible) ──
+// ── CHALLENGES (collapsible, default expanded) ──
 function buildChallenges() {
   const el = document.getElementById('tab-challenges');
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem;">
+    <button class="btn btn-ghost" onclick="collapseAllChal()">Collapse All</button>
+  </div>`;
   Object.entries(CH).forEach(([set,tasks]) => {
     const sid = slug(set);
-    html += `<div class="coll-hdr" id="chh_${sid}" onclick="toggleColl('${sid}')">
+    html += `<div class="coll-hdr open" id="chh_${sid}" onclick="toggleColl('ch',\'${sid}\')">
       <span class="coll-arrow">▶</span>
       <span class="coll-title">${set}</span>
       <span class="coll-prog" id="chp_${sid}">0/${tasks.length}</span>
     </div>
-    <div class="coll-body" id="chb_${sid}">`;
+    <div class="coll-body open" id="chb_${sid}">`;
     tasks.forEach(([lvl,req,rew],i) => {
       const id = `ch_${sid}_${i}`;
-      html += `<div class="cr" id="ir_${id}" onclick="toggleSimple('${id}')">
+      html += `<div class="cr" id="ir_${id}" onclick="toggleSimple(\'${id}\')">
         <div class="ick" id="ick_${id}"></div>
         <div class="clv">${lvl}</div>
         <div><div class="crq">${req}</div><div class="crr">Reward: ${rew}</div></div>
@@ -437,9 +465,17 @@ function buildChallenges() {
   el.innerHTML = html;
 }
 
-function toggleColl(sid) {
-  document.getElementById(`chh_${sid}`)?.classList.toggle('open');
-  document.getElementById(`chb_${sid}`)?.classList.toggle('open');
+function toggleColl(prefix, sid) {
+  document.getElementById(`${prefix}h_${sid}`)?.classList.toggle('open');
+  document.getElementById(`${prefix}b_${sid}`)?.classList.toggle('open');
+}
+
+function collapseAllChal() {
+  Object.keys(CH).forEach(set => {
+    const sid = slug(set);
+    document.getElementById(`chh_${sid}`)?.classList.remove('open');
+    document.getElementById(`chb_${sid}`)?.classList.remove('open');
+  });
 }
 
 // ── STORY ──
@@ -478,18 +514,20 @@ function buildAchieve() {
   el.innerHTML = html;
 }
 
-// ── CIGARETTE CARDS (collapsible) ──
+// ── CIGARETTE CARDS (collapsible, default expanded) ──
 function buildCigs() {
   const el = document.getElementById('tab-cigs');
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem;">
+    <button class="btn btn-ghost" onclick="collapseAllCigs()">Collapse All</button>
+  </div>`;
   Object.entries(CIG).forEach(([set,{reward,cards}]) => {
     const sid = slug(set);
-    html += `<div class="coll-hdr" id="cigh_${sid}" onclick="toggleCigColl('${sid}')">
+    html += `<div class="coll-hdr open" id="cigh_${sid}" onclick="toggleColl(\'cig\',\'${sid}\')">
       <span class="coll-arrow">▶</span>
       <span class="coll-title">${set}</span>
       <span class="coll-prog" id="cigp_${sid}">0/${cards.length}</span>
     </div>
-    <div class="coll-body" id="cigb_${sid}">
+    <div class="coll-body open" id="cigb_${sid}">
       <div style="font-size:11px;color:var(--gold);margin-bottom:.5rem;font-family:var(--font-d)">Reward: ${reward}</div>
       <table class="ct"><thead><tr>
         <th style="width:32px"></th><th>Card</th><th>State</th><th>Location</th><th>Description</th>
@@ -497,7 +535,7 @@ function buildCigs() {
     cards.forEach(([name,state,loc,desc],i) => {
       const id = `cig_${sid}_${i}`;
       html += `<tr id="ctr_${id}">
-        <td class="ccc" onclick="toggleCard('${id}')"><div class="mb" id="mb_${id}"></div></td>
+        <td class="ccc" onclick="toggleCard(\'${id}\')"><div class="mb" id="mb_${id}"></div></td>
         <td class="cn">${name}</td>
         <td class="cloc">${state}</td>
         <td class="cloc">${loc}</td>
@@ -509,9 +547,12 @@ function buildCigs() {
   el.innerHTML = html;
 }
 
-function toggleCigColl(sid) {
-  document.getElementById(`cigh_${sid}`)?.classList.toggle('open');
-  document.getElementById(`cigb_${sid}`)?.classList.toggle('open');
+function collapseAllCigs() {
+  Object.keys(CIG).forEach(set => {
+    const sid = slug(set);
+    document.getElementById(`cigh_${sid}`)?.classList.remove('open');
+    document.getElementById(`cigb_${sid}`)?.classList.remove('open');
+  });
 }
 
 // ═══════════════════ INTERACTIONS ═══════════════════
@@ -655,10 +696,12 @@ function updateOverview() {
   });
   setTxt('ov-pl',`${plDon}/${plTot}`); setBar('pb-pl',plTot?plDon/plTot*100:0);
 
-  // Fish
-  const fiNorm=FI.filter(f=>!f[1]); const fiLeg=FI.filter(f=>f[1]);
-  const fiDon=fiNorm.filter((_,i)=>d[`fi_${i}_0`]).length+fiLeg.filter((_,i)=>d[`fl_${i}_0`]).length;
-  const fiTot=FI.length;
+  // Fish — 3 checkboxes per normal fish, 1 per legendary
+  let fiTot=0,fiDon=0;
+  FI.filter(f=>!f[1]).forEach((_,i)=>{
+    [0,1,2].forEach(j=>{fiTot++;if(d[`fi_${i}_${j}`])fiDon++;});
+  });
+  FI.filter(f=>f[1]).forEach((_,i)=>{fiTot++;if(d[`fl_${i}_0`])fiDon++;});
   setTxt('ov-fi',`${fiDon}/${fiTot}`); setBar('pb-fi',fiTot?fiDon/fiTot*100:0);
 
   // Horses (studied/bonded/ridden per coat)
@@ -711,8 +754,12 @@ function updateSectionProgress(d) {
     setTxt(`pp_${slug(cat)}`,`${don}/${tot}`);
   });
   // Fish
-  setTxt('fp_fish', `${FI.filter((f,i)=>!f[1]&&d[`fi_${i}_0`]).length}/${FI.filter(f=>!f[1]).length}`);
-  setTxt('fp_leg',  `${FI.filter((f,i)=>f[1]&&d[`fl_${FI.filter(x=>x[1]).indexOf(f)}_0`]).length}/${FI.filter(f=>f[1]).length}`);
+  { let tot=0,don=0;
+    FI.filter(f=>!f[1]).forEach((_,i)=>{ [0,1,2].forEach(j=>{ tot++; if(d[`fi_${i}_${j}`]) don++; }); });
+    setTxt('fp_fish',`${don}/${tot}`); }
+  { let tot=0,don=0;
+    FI.filter(f=>f[1]).forEach((_,i)=>{ tot++; if(d[`fl_${i}_0`]) don++; });
+    setTxt('fp_leg',`${don}/${tot}`); }
   // Horses by breed
   [...new Set(HO.map(h=>h[0]))].forEach(breed=>{
     let tot=0,don=0;
