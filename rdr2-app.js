@@ -848,13 +848,30 @@ function setTxt(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 function setBar(id,p){const e=document.getElementById(id);if(e)e.style.width=Math.min(100,Math.max(0,p))+'%';}
 
 // ═══════════════════ TABS ═══════════════════
-function showTab(name,btn){
-  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
+function showTab(name, btn, label) {
+  document.querySelectorAll('.tp').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tb').forEach(b => b.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
   btn.classList.add('active');
+  // update active label and close dropdown
+  const lbl = document.getElementById('tabs-active-label');
+  if (lbl && label) lbl.textContent = '▸ ' + label;
+  const dd = document.getElementById('tabs-dropdown');
+  const mbtn = document.getElementById('tabs-menu-btn');
+  if (dd) dd.classList.remove('open');
+  if (mbtn) mbtn.classList.remove('open');
 }
-function toggleSet(){document.getElementById('settings-bar').classList.toggle('open');}
+
+function toggleTabsMenu() {
+  const dd = document.getElementById('tabs-dropdown');
+  const btn = document.getElementById('tabs-menu-btn');
+  if (!dd || !btn) return;
+  const isOpen = dd.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  btn.textContent = isOpen ? '✕ Close' : '☰ Sections';
+}
+
+function toggleSet() { document.getElementById('settings-bar').classList.toggle('open'); }
 
 // ═══════════════════ STORAGE ═══════════════════
 function saveLocal(){localStorage.setItem('rdr2_db',JSON.stringify(db));}
