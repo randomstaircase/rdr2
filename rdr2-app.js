@@ -29,6 +29,16 @@ function saveCfg() {
 }
 function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
 
+// ═══════════════════ GOLD ═══════════════════
+function saveGold(val) {
+  db.gold = parseFloat(val) || 0;
+  saveLocal(); debouncedSync();
+}
+function loadGold() {
+  const el = document.getElementById('gold-val');
+  if (el) el.value = (db.gold !== undefined) ? db.gold : '';
+}
+
 // ═══════════════════ INIT ═══════════════════
 async function init() {
   const cfg = getCfg();
@@ -38,8 +48,20 @@ async function init() {
   if (cfg.repo && cfg.token) await loadFromGH();
   else { const l = localStorage.getItem('rdr2_db'); if (l) try { db = JSON.parse(l); } catch(e){} }
   if (!db.inventory) db.inventory = {};
+  if (db.gold === undefined) db.gold = 0;
+  loadGold();
   renderPTSel();
   buildAllTabs();
+  // Set sticky top for inventory panel based on actual bar height
+  requestAnimationFrame(updateStickyTop);
+  new ResizeObserver(updateStickyTop).observe(document.getElementById('sticky-bar'));
+}
+
+function updateStickyTop() {
+  const bar = document.getElementById('sticky-bar');
+  if (!bar) return;
+  const h = bar.offsetHeight;
+  document.documentElement.style.setProperty('--sticky-top', h + 'px');
 }
 
 // ═══════════════════ PLAYTHROUGH ═══════════════════
@@ -184,18 +206,8 @@ function buildHorses() {
   let html = '';
   breeds.forEach(breed => {
     const coats = HO.map((h,i)=>({h,i})).filter(({h})=>h[0]===breed);
-    const hasHM = coats[0].h[4]; // breed-level horseman flag from first coat
-    // total checkboxes: each coat has 3 (studied/bonded/ridden), plus 1 horseman per breed if applicable
-    const tot = coats.length * 3 + (hasHM ? 1 : 0);
+    const tot = coats.length * 3;
     html += `<div class="sh"><span class="st">${breed}</span><span class="sp" id="hp_${slug(breed)}">0/${tot}</span></div>`;
-    // Horseman row at breed level
-    if (hasHM) {
-      const hmId = `ho_hm_${slug(breed)}`;
-      html += `<div class="mr" id="mr_${hmId}" style="background:rgba(40,96,128,.12);border-color:rgba(42,96,128,.3);margin-bottom:6px">
-        <div class="ml" style="color:var(--straw);font-size:12px;font-family:var(--font-d);letter-spacing:.05em">HORSEMAN CHALLENGE</div>
-        <div class="mcc"><div class="mc" onclick="toggleSimple('${hmId}')"><div class="mcl">COMPLETE</div><div class="mb" id="mb_${hmId}"></div></div></div>
-      </div>`;
-    }
     coats.forEach(({h,i}) => {
       html += mcRow('ho_',i,h[1],[h[2],h[3],h[4]].slice(0,3),HO_COLS);
     });
@@ -274,7 +286,7 @@ function buildTrapper() {
   });
   itemHtml += '</div>';
 
-  el.innerHTML = `<div class="trapper-layout">${invHtml}${itemHtml}</div>`;
+  el.innerHTML = `<div class="trapper-layout" style="display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start;">${invHtml}${itemHtml}</div>`;
   refreshTrapperCan();
 }
 
@@ -349,7 +361,7 @@ function buildPearson() {
       const reqs = p[2]; // [[mat,qty],...]
       const reqBoxes = reqs.map(([m,q],ri) => {
         const reqId = `pe_${i}_r${ri}`;
-        return `<div class="pe-req" onclick="togglePeReq('${reqId}',${i})">
+        return `<div class="pe-req" onclick="event.stopPropagation();togglePeReq('${reqId}',${i})">
           <div class="mb" id="mb_${reqId}"></div>
           <span class="pe-req-name">${m}</span>
         </div>`;
@@ -579,15 +591,6 @@ function renderAllChecks() {
     row.classList.toggle('done', allOn);
   });
 
-  // horseman breed checkboxes
-  const breeds = [...new Set(HO.map(h=>h[0]))];
-  breeds.forEach(breed => {
-    const hmId = `ho_hm_${slug(breed)}`;
-    const on = !!d[hmId];
-    document.getElementById(`mb_${hmId}`)?.classList.toggle('on', on);
-    document.getElementById(`mr_${hmId}`)?.classList.toggle('done', on);
-  });
-
   // trapper
   TR.forEach((t,i) => {
     const on = !!d[`tr_${i}`];
@@ -658,16 +661,10 @@ function updateOverview() {
   const fiTot=FI.length;
   setTxt('ov-fi',`${fiDon}/${fiTot}`); setBar('pb-fi',fiTot?fiDon/fiTot*100:0);
 
-  // Horses (studied/bonded/ridden per coat + horseman per breed)
+  // Horses (studied/bonded/ridden per coat)
   let hoTot=0,hoDon=0;
   HO.forEach((h,i)=>{
     [h[2],h[3],h[4]].forEach((v,j)=>{if(v){hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}});
-  });
-  // horseman per breed
-  const breeds=[...new Set(HO.map(h=>h[0]))];
-  breeds.forEach(breed=>{
-    const hasHM=HO.filter(h=>h[0]===breed)[0]?.at(4);
-    if(hasHM){hoTot++;if(d[`ho_hm_${slug(breed)}`])hoDon++;}
   });
   setTxt('ov-ho',`${hoDon}/${hoTot}`); setBar('pb-ho',hoTot?hoDon/hoTot*100:0);
 
@@ -720,8 +717,6 @@ function updateSectionProgress(d) {
   [...new Set(HO.map(h=>h[0]))].forEach(breed=>{
     let tot=0,don=0;
     HO.forEach((h,i)=>{if(h[0]!==breed)return;[h[2],h[3],h[4]].forEach((v,j)=>{if(v){tot++;if(d[`ho_${i}_${j}`])don++;}});});
-    const hasHM=HO.filter(h=>h[0]===breed)[0]?.at(4);
-    if(hasHM){tot++;if(d[`ho_hm_${slug(breed)}`])don++;}
     setTxt(`hp_${slug(breed)}`,`${don}/${tot}`);
   });
   // Weapons
@@ -794,7 +789,10 @@ async function loadFromGH(){
     db=JSON.parse(atob(json.content.replace(/\n/g,'')));
     if(!db.inventory)db.inventory={};
     localStorage.setItem('rdr2_sha',json.sha);
-    saveLocal();showSS('Loaded ✓','ok');
+    if (!db.inventory) db.inventory = {};
+    if (db.gold === undefined) db.gold = 0;
+    saveLocal(); loadGold();
+    showSS('Loaded ✓','ok');
     setTxt('ls','Last sync: '+new Date().toLocaleTimeString());
   }catch(e){showSS('Load failed: '+e.message,'err');}
 }
@@ -837,7 +835,6 @@ function exportCSV(){
   FI.filter(f=>!f[1]).forEach((f,i)=>rows.push([pt,'Fish',f[0],'CAUGHT',d[`fi_${i}_0`]?'Yes':'No']));
   FI.filter(f=>f[1]).forEach((f,i)=>rows.push([pt,'Legendary Fish',f[0],'CAUGHT',d[`fl_${i}_0`]?'Yes':'No']));
   HO.forEach((h,i)=>['STUDIED','BONDED','RIDDEN'].forEach((f,j)=>rows.push([pt,`Horse-${h[0]}`,h[1],f,d[`ho_${i}_${j}`]?'Yes':'No'])));
-  [...new Set(HO.map(h=>h[0]))].forEach(breed=>{if(HO.filter(h=>h[0]===breed)[0]?.at(4))rows.push([pt,'Horse Horseman',breed,'complete',d[`ho_hm_${slug(breed)}`]?'Yes':'No']);});
   WE.forEach(([cat,name],i)=>rows.push([pt,`Weapon-${cat}`,name,'obtained',d[`we_${i}`]?'Yes':'No']));
   EQ.forEach(([cat,name],i)=>rows.push([pt,`Equipment-${cat}`,name,'obtained',d[`eq_${i}`]?'Yes':'No']));
   TR.forEach(([cat,name],i)=>rows.push([pt,`Trapper-${cat}`,name,'crafted',d[`tr_${i}`]?'Yes':'No']));
