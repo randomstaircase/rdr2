@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RDR2 Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --blood:#501313;--crimson:#A32D2D;--red:#E24B4A;
+  --gold:#BA7517;--straw:#FAC775;--mahogany:#412402;
+  --charcoal:#1a1816;--panel:#221a14;--border:#6b3a1f;
+  --text:#f0dfc0;--muted:#a08060;--success:#4a7c3f;
+  --bronze-c:#cd7f32;--silver-c:#aaa9ad;--goldm-c:#ffd700;
+  --font-d:'Cinzel',serif;--font-b:'Crimson Text',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--charcoal);color:var(--text);font-family:var(--font-b);font-size:15px;min-height:100vh;}
+header{background:var(--blood);border-bottom:2px solid var(--gold);padding:0 1.5rem;position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;min-height:58px;box-shadow:0 2px 20px rgba(0,0,0,.6);flex-wrap:wrap;gap:.4rem;}
+.brand{font-family:var(--font-d);font-size:1.2rem;font-weight:700;color:var(--straw);letter-spacing:.08em;white-space:nowrap;}
+.brand span{color:var(--red);}
+.ptc{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+select,input[type=text],input[type=password]{background:var(--mahogany);border:1px solid var(--border);color:var(--text);
+  font-family:var(--font-b);font-size:14px;padding:5px 9px;border-radius:3px;outline:none;}
+select:focus,input:focus{border-color:var(--gold);}
+select option{background:var(--mahogany);}
+.btn{font-family:var(--font-d);font-size:10px;font-weight:600;letter-spacing:.06em;padding:5px 12px;border-radius:3px;
+  border:1px solid;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-gold{background:var(--gold);border-color:var(--straw);color:var(--charcoal);}
+.btn-gold:hover{background:var(--straw);}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--straw);}
+#settings-bar{background:var(--panel);border-bottom:1px solid var(--border);padding:.6rem 1.5rem;display:none;gap:.8rem;align-items:center;flex-wrap:wrap;}
+#settings-bar.open{display:flex;}
+.sg{display:flex;align-items:center;gap:.4rem;font-size:13px;color:var(--muted);}
+#settings-bar input{width:240px;font-size:13px;}
+#overview{background:var(--panel);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem;}
+.sc{background:var(--charcoal);border:1px solid var(--border);border-radius:4px;padding:.5rem .75rem;text-align:center;}
+.sl{font-size:10px;letter-spacing:.08em;color:var(--muted);font-family:var(--font-d);text-transform:uppercase;}
+.sv{font-size:1.3rem;font-weight:600;color:var(--straw);font-family:var(--font-d);line-height:1.2;}
+.pbw{background:var(--mahogany);border-radius:2px;height:3px;margin-top:3px;}
+.pbf{height:3px;border-radius:2px;background:var(--crimson);transition:width .3s;}
+#tabs{display:flex;background:var(--panel);border-bottom:2px solid var(--border);padding:0 1.5rem;overflow-x:auto;}
+.tb{font-family:var(--font-d);font-size:10px;letter-spacing:.07em;font-weight:600;padding:11px 14px;border:none;
+  border-bottom:2px solid transparent;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;margin-bottom:-2px;}
+.tb:hover{color:var(--straw);}
+.tb.active{color:var(--straw);border-bottom-color:var(--gold);}
+main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
+.tp{display:none;}
+.tp.active{display:block;}
+.sh{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:.4rem;margin-bottom:.9rem;margin-top:1.3rem;}
+.sh:first-child{margin-top:0;}
+.st{font-family:var(--font-d);font-size:.9rem;color:var(--straw);letter-spacing:.06em;}
+.sp{font-size:12px;color:var(--muted);}
+.orn{text-align:center;color:var(--border);font-size:1rem;margin:.5rem 0;letter-spacing:.3em;}
+/* multi-check rows */
+.mr{display:flex;align-items:center;background:var(--panel);border:1px solid transparent;border-radius:3px;margin-bottom:3px;overflow:hidden;transition:border-color .12s;}
+.mr:hover{border-color:var(--border);}
+.mr.done{background:rgba(74,124,63,.12);border-color:rgba(74,124,63,.25);}
+.ml{flex:1;padding:6px 9px;font-size:13px;color:var(--text);line-height:1.3;min-width:0;}
+.ml small{display:block;font-size:10px;color:var(--muted);}
+.mcc{display:flex;flex-shrink:0;}
+.mc{width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:4px 2px;border-left:1px solid #3a2010;cursor:pointer;user-select:none;transition:background .12s;}
+.mc:hover{background:#2a1e14;}
+.mc.na{cursor:default;opacity:.25;pointer-events:none;}
+.mcl{font-size:9px;color:var(--muted);font-family:var(--font-d);letter-spacing:.04em;margin-bottom:2px;}
+.mb{width:14px;height:14px;border:1.5px solid var(--border);border-radius:2px;background:var(--mahogany);}
+.mb.on{background:var(--success);border-color:var(--success);position:relative;}
+.mb.on::after{content:'';position:absolute;left:2px;top:4px;width:7px;height:4px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg);}
+/* simple rows */
+.ir{display:flex;align-items:flex-start;gap:8px;background:var(--panel);border:1px solid transparent;
+  border-radius:3px;padding:6px 9px;cursor:pointer;transition:all .12s;user-select:none;margin-bottom:3px;}
+.ir:hover{border-color:var(--border);background:#2a1e14;}
+.ir.on{background:rgba(74,124,63,.12);border-color:rgba(74,124,63,.35);}
+.ick{width:15px;height:15px;flex-shrink:0;margin-top:2px;border:1.5px solid var(--border);border-radius:2px;
+  background:var(--mahogany);position:relative;}
+.ir.on .ick{background:var(--success);border-color:var(--success);}
+.ir.on .ick::after{content:'';position:absolute;left:2px;top:4px;width:8px;height:4px;
+  border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg);}
+.in{font-size:13px;color:var(--text);flex:1;line-height:1.3;}
+.ir.on .in{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted);}
+.isb{font-size:11px;color:var(--muted);margin-top:1px;}
+.ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:4px;margin-bottom:.75rem;}
+/* challenge rows */
+.cr{display:flex;align-items:flex-start;gap:8px;background:var(--panel);border:1px solid transparent;
+  border-radius:3px;padding:6px 9px;cursor:pointer;transition:all .12s;user-select:none;margin-bottom:3px;}
+.cr:hover{border-color:var(--border);}
+.cr.on{background:rgba(74,124,63,.12);border-color:rgba(74,124,63,.25);}
+.cr.on .ick{background:var(--success);border-color:var(--success);}
+.cr.on .ick::after{content:'';position:absolute;left:2px;top:4px;width:8px;height:4px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg);}
+.cr.on .crq{color:var(--muted);text-decoration:line-through;}
+.clv{font-size:10px;font-family:var(--font-d);color:var(--gold);flex-shrink:0;width:44px;padding-top:2px;}
+.crq{font-size:13px;color:var(--text);}
+.crr{font-size:11px;color:var(--muted);margin-top:1px;}
+/* story */
+.sor{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid transparent;
+  border-radius:3px;padding:6px 9px;margin-bottom:3px;transition:border-color .12s;}
+.sor:hover{border-color:var(--border);}
+.son{flex:1;font-size:13px;color:var(--text);}
+.mbs{display:flex;gap:3px;flex-shrink:0;}
+.mbtn{font-size:9px;font-family:var(--font-d);letter-spacing:.04em;padding:2px 7px;border-radius:2px;
+  border:1px solid;cursor:pointer;background:transparent;transition:all .12s;}
+.mbtn.br{border-color:var(--bronze-c);color:var(--bronze-c);}
+.mbtn.br.on{background:var(--bronze-c);color:var(--charcoal);}
+.mbtn.si{border-color:var(--silver-c);color:var(--silver-c);}
+.mbtn.si.on{background:var(--silver-c);color:var(--charcoal);}
+.mbtn.go{border-color:var(--goldm-c);color:var(--goldm-c);}
+.mbtn.go.on{background:var(--goldm-c);color:var(--charcoal);}
+/* cigarette table */
+.ct{width:100%;border-collapse:collapse;margin-bottom:1rem;font-size:13px;}
+.ct th{font-family:var(--font-d);font-size:10px;letter-spacing:.06em;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);text-align:left;}
+.ct td{padding:5px 8px;border-bottom:1px solid #2a1e14;vertical-align:top;}
+.ct tr:hover td{background:#2a1e14;}
+.ct tr.cdone td{opacity:.45;}
+.ct tr.cdone .cn{text-decoration:line-through;}
+.cloc{color:var(--muted);font-size:12px;}
+.ccc{width:34px;text-align:center;cursor:pointer;}
+/* modal */
+#mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+#mo.open{display:flex;}
+#md{background:var(--panel);border:1px solid var(--gold);border-radius:6px;padding:1.75rem;width:360px;max-width:90vw;}
+#md h2{font-family:var(--font-d);font-size:1rem;color:var(--straw);margin-bottom:.9rem;}
+#md input{width:100%;margin-bottom:.9rem;}
+.mdb{display:flex;gap:.5rem;justify-content:flex-end;}
+#ss{position:fixed;bottom:1.25rem;right:1.25rem;background:var(--panel);border:1px solid var(--border);
+  border-radius:4px;padding:7px 13px;font-size:12px;color:var(--muted);display:none;z-index:150;}
+#ss.vis{display:block;}
+#ss.ok{border-color:var(--success);color:#7ecf70;}
+#ss.err{border-color:var(--crimson);color:var(--red);}
+#nopt{text-align:center;padding:4rem 2rem;display:none;}
+#nopt.vis{display:block;}
+#nopt h2{font-family:var(--font-d);font-size:1.3rem;color:var(--straw);margin-bottom:.6rem;}
+#nopt p{color:var(--muted);margin-bottom:1.25rem;}
+@media(max-width:700px){
+  header{flex-direction:column;align-items:flex-start;padding:.6rem 1rem;min-height:auto;}
+  main{padding:.9rem 1rem;}
+  .mc{width:50px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">RDR2 <span>✦</span> TRACKER</div>
+  <div class="ptc">
+    <select id="pts" onchange="switchPT(this.value)"><option value="">— Select Playthrough —</option></select>
+    <button class="btn btn-gold" onclick="openMo()">+ New</button>
+    <button class="btn btn-ghost" onclick="toggleSet()">⚙ Settings</button>
+    <button class="btn btn-ghost" onclick="exportCSV()">↓ Export</button>
+    <label class="btn btn-ghost" style="cursor:pointer">↑ Import<input type="file" accept=".csv" style="display:none" onchange="importCSV(event)"/></label>
+  </div>
+</header>
+<div id="settings-bar">
+  <div class="sg"><label>Repo:</label><input type="text" id="cr" placeholder="owner/rdr2-tracker" oninput="saveCfg()"/></div>
+  <div class="sg"><label>Branch:</label><input type="text" id="cb" placeholder="main" style="width:70px" oninput="saveCfg()"/></div>
+  <div class="sg"><label>Token:</label><input type="password" id="ct" placeholder="ghp_..." oninput="saveCfg()"/></div>
+  <button class="btn btn-gold" onclick="syncGH()">Sync Now</button>
+  <span id="ls" style="font-size:12px;color:var(--muted)"></span>
+</div>
+<div id="overview">
+  <div class="sc"><div class="sl">Achievements</div><div class="sv" id="oa">0/52</div><div class="pbw"><div class="pbf" id="pba" style="width:0%"></div></div></div>
+  <div class="sc"><div class="sl">Compendium</div><div class="sv" id="oc">0/—</div><div class="pbw"><div class="pbf" id="pbc" style="width:0%"></div></div></div>
+  <div class="sc"><div class="sl">Challenges</div><div class="sv" id="och">0/90</div><div class="pbw"><div class="pbf" id="pbch" style="width:0%"></div></div></div>
+  <div class="sc"><div class="sl">Story</div><div class="sv" id="os">0/—</div><div class="pbw"><div class="pbf" id="pbs" style="width:0%"></div></div></div>
+  <div class="sc"><div class="sl">Cig. Cards</div><div class="sv" id="occ">0/144</div><div class="pbw"><div class="pbf" id="pbcc" style="width:0%"></div></div></div>
+  <div class="sc"><div class="sl">Overall</div><div class="sv" id="ot">0%</div><div class="pbw"><div class="pbf" id="pbt" style="width:0%;background:var(--gold)"></div></div></div>
+</div>
+<div id="tabs">
+  <button class="tb active" onclick="showTab('animals',this)">Animals</button>
+  <button class="tb" onclick="showTab('plants',this)">Plants</button>
+  <button class="tb" onclick="showTab('fish',this)">Fish</button>
+  <button class="tb" onclick="showTab('horses',this)">Horses</button>
+  <button class="tb" onclick="showTab('weapons',this)">Weapons</button>
+  <button class="tb" onclick="showTab('equip',this)">Equipment</button>
+  <button class="tb" onclick="showTab('trapper',this)">Trapper</button>
+  <button class="tb" onclick="showTab('pearson',this)">Pearson</button>
+  <button class="tb" onclick="showTab('challenges',this)">Challenges</button>
+  <button class="tb" onclick="showTab('story',this)">Story</button>
+  <button class="tb" onclick="showTab('achieve',this)">Achievements</button>
+  <button class="tb" onclick="showTab('cigs',this)">Cigarette Cards</button>
+</div>
+<main>
+  <div id="nopt" class="vis"><h2>No Playthrough Selected</h2><p>Create or select a playthrough to begin tracking.</p><button class="btn btn-gold" onclick="openMo()">+ Create Playthrough</button></div>
+  <div id="tab-animals"    class="tp active"></div>
+  <div id="tab-plants"     class="tp"></div>
+  <div id="tab-fish"       class="tp"></div>
+  <div id="tab-horses"     class="tp"></div>
+  <div id="tab-weapons"    class="tp"></div>
+  <div id="tab-equip"      class="tp"></div>
+  <div id="tab-trapper"    class="tp"></div>
+  <div id="tab-pearson"    class="tp"></div>
+  <div id="tab-challenges" class="tp"></div>
+  <div id="tab-story"      class="tp"></div>
+  <div id="tab-achieve"    class="tp"></div>
+  <div id="tab-cigs"       class="tp"></div>
+</main>
+<div id="mo"><div id="md">
+  <h2>New Playthrough</h2>
+  <input type="text" id="pti" placeholder="e.g. Honorable Arthur, 100% Run…" maxlength="60" onkeydown="if(event.key==='Enter')confPT()"/>
+  <div class="mdb"><button class="btn btn-ghost" onclick="closeMo()">Cancel</button><button class="btn btn-gold" onclick="confPT()">Create</button></div>
+</div></div>
+<div id="ss"></div>
+<script src="rdr2-data.js"></script>
+<script src="rdr2-app.js"></script>
+</body>
+</html>
