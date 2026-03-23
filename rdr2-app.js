@@ -100,10 +100,20 @@ function buildAllTabs() {
   buildChallenges(); buildStory(); buildAchieve(); buildCigs();
 }
 
-// ── Section header helper ──
+// ── Section header helper — collapsible ──
+// Returns header HTML; caller must wrap content in <div class="coll-body open" id="cb_PROGID">...</div>
 function secHdr(title, progId, total) {
-  return `<div class="sh"><span class="st">${title}</span><span class="sp" id="${progId}">0/${total}</span></div>`;
+  const sid = progId;
+  return `<div class="coll-hdr open" id="ch_${sid}" onclick="toggleSec('${sid}')">
+    <span class="coll-arrow">▶</span>
+    <span class="coll-title">${title}</span>
+    <span class="coll-prog" id="${sid}">0/${total}</span>
+  </div>`;
 }
+function secBody(progId) {
+  return `<div class="coll-body open" id="cb_${progId}">`;
+}
+function secBodyEnd() { return '</div>'; }
 
 // ── Multi-check row helper ──
 function mcRow(prefix, i, label, cols, colLabels, extraClass) {
@@ -131,7 +141,9 @@ function buildAnimals() {
     const items = AN.filter(a=>a[0]===grp);
     const tot = items.reduce((s,a)=>[a[2],a[3],a[4],a[5]].reduce((ss,v)=>ss+(v?1:0),s),0);
     html += secHdr(grp, `ap_${slug(grp)}`, tot);
+    html += secBody(`ap_${slug(grp)}`);
     AN.forEach((a,i) => { if (a[0]===grp) html += mcRow('an_',i,a[1],[a[2],a[3],a[4],a[5]],AN_COLS); });
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
@@ -150,6 +162,7 @@ function buildPlants() {
       return s + cols.reduce((ss,v)=>ss+(v?1:0),0);
     },0);
     html += secHdr(cat, `pp_${slug(cat)}`, tot);
+    html += secBody(`pp_${slug(cat)}`);
     PL.forEach((p,i) => {
       if (p[0]!==cat) return;
       const cols = isOrchid?[p[2],0,p[4]]:[p[2],p[3],p[4]];
@@ -172,6 +185,7 @@ function buildPlants() {
         html += mcRow('pl_',i,p[1],[p[2],p[3],p[4]],PL_COLS);
       }
     });
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
@@ -187,6 +201,7 @@ function buildFish() {
   // calculate total checkboxes for regular fish (3 per fish)
   const normTot = normal.length * 3;
   let html = secHdr(`Fish (${normal.length} species)`, 'fp_fish', normTot);
+  html += secBody('fp_fish');
   normal.forEach((f,i) => {
     const cells = FI_COLS_NORM.map((lbl,j) =>
       `<div class="mc" onclick="toggleMC('fi_${i}',${j})">
@@ -200,14 +215,17 @@ function buildFish() {
     </div>`;
   });
 
+  html += secBodyEnd();
   html += '<div class="orn">✦ ✦ ✦</div>';
   html += secHdr(`Legendary Fish (${leg.length})`, 'fp_leg', leg.length);
+  html += secBody('fp_leg');
   leg.forEach((f,i) => {
     html += `<div class="mr" id="mr_fl_${i}">
       <div class="ml">${f[0]}</div>
       <div class="mcc"><div class="mc" onclick="toggleMC('fl_${i}',0)"><div class="mcl">CAUGHT</div><div class="mb" id="mb_fl_${i}_0"></div></div></div>
     </div>`;
   });
+  html += secBodyEnd();
   el.innerHTML = html;
 }
 
@@ -221,7 +239,12 @@ function buildHorses() {
     // hasHorseman: breed counts for Horseman challenge if any coat has flag set
     const hasHorseman = coats.some(({h})=>h[4]===1);
     const tot = coats.length * 3 + (hasHorseman ? 1 : 0);
-    html += `<div class="sh"><span class="st">${breed}</span><span class="sp" id="hp_${slug(breed)}">0/${tot}</span></div>`;
+    html += `<div class="coll-hdr open" id="ch_hp_${slug(breed)}" onclick="toggleSec('hp_${slug(breed)}')">
+      <span class="coll-arrow">▶</span>
+      <span class="coll-title">${breed}</span>
+      <span class="coll-prog" id="hp_${slug(breed)}">0/${tot}</span>
+    </div>`;
+    html += secBody(`hp_${slug(breed)}`);
     // Horseman row — one per breed
     if (hasHorseman) {
       const hmId = `ho_hm_${slug(breed)}`;
@@ -233,6 +256,7 @@ function buildHorses() {
     coats.forEach(({h,i}) => {
       html += mcRow('ho_',i,h[1],[h[2],h[3],h[4]].slice(0,3),HO_COLS);
     });
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
@@ -393,6 +417,7 @@ function buildPearson() {
   cats.forEach(cat => {
     const items = PE.map((p,i)=>({p,i})).filter(({p})=>p[0]===cat);
     html += secHdr(cat, `pep_${slug(cat)}`, items.length);
+    html += secBody(`pep_${slug(cat)}`);
     items.forEach(({p,i}) => {
       const reqs = p[2]; // [[mat,qty],...]
       const reqBoxes = reqs.map(([m,q],ri) => {
@@ -410,6 +435,7 @@ function buildPearson() {
         <div class="pe-reqs">${reqBoxes}</div>
       </div>`;
     });
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
@@ -480,6 +506,11 @@ function toggleColl(prefix, sid) {
   document.getElementById(`${prefix}b_${sid}`)?.classList.toggle('open');
 }
 
+function toggleSec(sid) {
+  document.getElementById(`ch_${sid}`)?.classList.toggle('open');
+  document.getElementById(`cb_${sid}`)?.classList.toggle('open');
+}
+
 function toggleAllChal() {
   const btn = document.getElementById('chal-toggle-btn');
   const anyOpen = Object.keys(CH).some(set => document.getElementById(`chh_${slug(set)}`)?.classList.contains('open'));
@@ -497,6 +528,7 @@ function buildStory() {
   let html = '';
   Object.entries(ST).forEach(([ch,missions]) => {
     html += secHdr(ch, `stp_${slug(ch)}`, missions.length);
+    html += secBody(`stp_${slug(ch)}`);
     missions.forEach((m,i) => {
       const id = `st_${slug(ch)}_${i}`;
       html += `<div class="sor" id="sor_${id}">
@@ -508,6 +540,7 @@ function buildStory() {
         </div>
       </div>`;
     });
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
@@ -516,13 +549,22 @@ function buildStory() {
 function buildAchieve() {
   const el = document.getElementById('tab-achieve');
   const cats = [...new Set(AC.map(a=>a[1]))];
+  const typeColor = {platinum:'#a67bd0',gold:'#E8B020',silver:'#aaa9ad',bronze:'#cd7f32'};
   let html = '';
   cats.forEach(cat => {
     const items = AC.map((a,i)=>({a,i})).filter(({a})=>a[1]===cat);
     html += secHdr(cat, `acp_${slug(cat)}`, items.length);
+    html += secBody(`acp_${slug(cat)}`);
     html += '<div class="ig">';
-    items.forEach(({a,i}) => html += simRow(`ac_${i}`,a[0],''));
-    html += '</div>';
+    items.forEach(({a,i}) => {
+      const col = typeColor[a[2]] || typeColor.bronze;
+      const badge = `<span style="font-size:9px;font-family:var(--font-d);letter-spacing:.04em;padding:1px 6px;border-radius:10px;border:1px solid ${col};color:${col};flex-shrink:0;white-space:nowrap;">${a[2]}</span>`;
+      html += `<div class="ir" id="ir_ac_${i}" onclick="toggleSimple('ac_${i}')">
+        <div class="ick" id="ick_ac_${i}"></div>
+        <div class="in" style="flex:1">${a[0]}</div>${badge}
+      </div>`;
+    });
+    html += '</div>' + secBodyEnd();
   });
   el.innerHTML = html;
 }
