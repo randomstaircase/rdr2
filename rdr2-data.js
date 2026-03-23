@@ -1,4 +1,3 @@
-
 // ═══════════════════════════════════════ DATA ═══════════════════════════════════════
 
 // ANIMALS: [group, name, tracked(1/0), killed, skinned, studied]
