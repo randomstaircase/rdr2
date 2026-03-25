@@ -1,3 +1,4 @@
+
 // ═══════════════════════════════════════ DATA ═══════════════════════════════════════
 
 // ANIMALS: [group, name, tracked(1/0), killed, skinned, studied]
@@ -644,69 +645,69 @@ const ST = {
   'Epilogue II':['The Wheel','A New Jerusalem','And the Truth Will Set You Free','Home of the Gentry?','Here Comes a New Challenger','A Really Big Bastard','American Venom'],
 };
 
-// ACHIEVEMENTS — actual PS5 trophy list (51 trophies excl. Platinum)
-// [name, category, type]  type: 'plat'|'gold'|'silver'|'bronze'
+// ACHIEVEMENTS — PS5 trophy list (51 trophies excl. Platinum)
+// [name, category, type, description]
 const AC = [
-  // Story chapter completions
-  ['Back in the Mud','Story','bronze'],
-  ['Just a Scratch','Story','bronze'],
-  ['To Greener Pastures','Story','bronze'],
-  ['Settling Feuds','Story','bronze'],
-  ['Washed Ashore','Story','bronze'],
-  ['No Traitors','Story','bronze'],
-  ['Third Time Lucky','Story','bronze'],
-  ['Redemption','Story','silver'],
-  ['Cowboy Builder','Story','bronze'],
-  ['Endless Summer','Story','gold'],
-  // Missable story
-  ['Lending a Hand','Story — Missable','silver'],
-  ['Friends With Benefits','Story — Missable','bronze'],
-  ['Errand Boy','Story — Missable','bronze'],
-  // Completion & medals
-  ['Best in the West','Completion','gold'],
-  ['Gold Rush','Completion','silver'],
-  // Exploration & collectibles
-  ['Paying Respects','Exploration','bronze'],
-  ["Collector's Item",'Exploration','silver'],
-  ["It's Art",'Exploration','bronze'],
-  ['Artificial Intelligence','Exploration','bronze'],
-  ['Western Stranger','Exploration','bronze'],
-  // Combat & challenge
-  ['Grin and Bear It','Combat','bronze'],
-  ['Bountiful','Wanted','bronze'],
-  // Economy
-  ['Take From the Rich','Economy','bronze'],
-  ['Give to the Poor','Economy','bronze'],
-  ['Pony Up','Economy','bronze'],
-  // Lifestyle
-  ['Extreme Personality','Honor','bronze'],
-  ['Hobby Horse','Minigames','bronze'],
-  ['Breaking and Entering','Crime','bronze'],
-  ['Trusty Steed','Horses','bronze'],
-  // Hunting & crafting
-  ['Zoologist','Hunting','bronze'],
-  ['Skin Deep','Hunting','bronze'],
-  ["It Was THIS Big!",'Fishing','bronze'],
-  ['Self Sufficient','Crafting','bronze'],
-  ['Locked and Loaded','Weapons','bronze'],
-  // Red Dead Online
-  ['Breakout','Online','bronze'],
-  ['Series Major','Online','bronze'],
-  ['Gun For Hire','Online','bronze'],
-  ['Eventful','Online','bronze'],
-  ['Buckle Up','Online','bronze'],
-  ['The Real Deal','Online','bronze'],
-  ['Horses for Courses','Online','bronze'],
-  ['Getting Started','Online','bronze'],
-  ['Notorious','Online','gold'],
-  ["All's Fair",'Online','bronze'],
-  ['Home Comforts','Online','bronze'],
-  ['Non-Regulation','Online','bronze'],
-  ['Posse Up','Online','bronze'],
-  ['Master Craftsman','Online','bronze'],
-  ['Butchered','Online','bronze'],
-  ['Picked to Perfection','Online','bronze'],
-  ['Strength in Numbers','Online','bronze'],
+  // ── STORY ──
+  ['Back in the Mud','Story','bronze','Complete Chapter 1'],
+  ['Just a Scratch','Story','bronze','Complete "Enter, Pursued by a Memory"'],
+  ['To Greener Pastures','Story','bronze','Complete Chapter 2'],
+  ['Settling Feuds','Story','bronze','Complete Chapter 3'],
+  ['Washed Ashore','Story','bronze','Complete Chapter 4'],
+  ['No Traitors','Story','bronze','Complete Chapter 5'],
+  ['Third Time Lucky','Story','bronze','Complete "Goodbye, Dear Friend"'],
+  ['Redemption','Story','silver','Complete "Red Dead Redemption"'],
+  ['Cowboy Builder','Story','bronze','Complete "A New Jerusalem"'],
+  ['Endless Summer','Story','gold','Complete the Epilogue'],
+  // ── MISSABLE STORY ──
+  ['Lending a Hand','Story (Missable)','silver','Complete all optional Honor story missions'],
+  ['Friends With Benefits','Story (Missable)','bronze','Complete a Companion Activity in each camp'],
+  ['Errand Boy','Story (Missable)','bronze','Deliver 5 camp companion item requests'],
+  // ── COMPLETION ──
+  ['Best in the West','Completion','gold','Attain 100% completion'],
+  ['Gold Rush','Completion','silver','Earn 70 Gold Medals in Story missions'],
+  // ── EXPLORATION ──
+  ['Paying Respects','Exploration','bronze','Find the graves of each of your fallen companions'],
+  ["Collector's Item",'Exploration','silver','Complete one of the Collectable strands'],
+  ["It's Art",'Exploration','bronze','Find a permanent home for the squirrel statue'],
+  ['Artificial Intelligence','Exploration','bronze','Discover the fate of Marko Dragic'],
+  ['Western Stranger','Exploration','bronze','Complete 10 Stranger mission strands'],
+  // ── COMBAT / CHALLENGES ──
+  ['Grin and Bear It','Combat','bronze','Survive 18 bear attacks and kill the bear each time'],
+  ['Bountiful','Wanted','bronze','Survive 3 days holding a $250 bounty in all states'],
+  // ── ECONOMY ──
+  ['Take From the Rich','Economy','bronze','Rob or loot $250'],
+  ['Give to the Poor','Economy','bronze','Donate $250 to the gang tithing box'],
+  ['Pony Up','Economy','bronze','Spend $5,000 across all shops'],
+  // ── LIFESTYLE ──
+  ['Extreme Personality','Honor','bronze','Reach maximum or minimum Honor level'],
+  ['Hobby Horse','Minigames','bronze','Play all mini games'],
+  ['Breaking and Entering','Crime','bronze','Recover the stash from 4 homesteads'],
+  ['Trusty Steed','Horses','bronze','Reach max bonding level with a horse'],
+  // ── HUNTING & CRAFTING ──
+  ['Zoologist','Hunting','bronze','Study every animal across all states in Story Mode'],
+  ['Skin Deep','Hunting','bronze','Skin every species of animal in Story Mode'],
+  ["It Was THIS Big!",'Fishing','bronze','Catch a fish weighing at least 16 lbs'],
+  ['Self Sufficient','Crafting','bronze','Craft 30 unique items in Story Mode'],
+  ['Locked and Loaded','Weapons','bronze','Upgrade each available component for a single sidearm or longarm'],
+  // ── RED DEAD ONLINE ──
+  ['Breakout','Online','bronze','Complete the Online Intro'],
+  ['Series Major','Online','bronze','Take part in a Series'],
+  ['Gun For Hire','Online','bronze','Accept 10 Free Roam missions from characters'],
+  ['Eventful','Online','bronze','Play 5 Free Roam Events'],
+  ['Buckle Up','Online','bronze','Achieve 5 gold belt buckles from awards'],
+  ['The Real Deal','Online','bronze','Achieve MVP 3 times in a round with at least 4 players'],
+  ['Horses for Courses','Online','bronze','Concurrently own 5 horses'],
+  ['Getting Started','Online','bronze','Reach Rank 10'],
+  ['Notorious','Online','gold','Reach Rank 50'],
+  ["All's Fair",'Online','bronze',"Counter a rival Posse's Free Roam mission"],
+  ['Home Comforts','Online','bronze','Purchase 5 camp improvements'],
+  ['Non-Regulation','Online','bronze','Craft 25 pieces of ammunition'],
+  ['Posse Up','Online','bronze','Form a Persistent Posse'],
+  ['Master Craftsman','Online','bronze','Craft 20 items (excluding ammo)'],
+  ['Butchered','Online','bronze','Sell 20 items to the Butcher'],
+  ['Picked to Perfection','Online','bronze','Pick 25 Herbs'],
+  ['Strength in Numbers','Online','bronze','Complete a Free Roam mission as part of a Posse with 2+ members'],
 ];
 
 // CIGARETTE CARDS
