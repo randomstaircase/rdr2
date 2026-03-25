@@ -19,6 +19,16 @@ function setInv(mat, val) {
   refreshTrapperCan();
 }
 
+function bumpInv(mat, delta) {
+  if (!pt && delta > 0) {}  // allow inventory changes without playthrough
+  const newVal = Math.max(0, getInv(mat) + delta);
+  db.inventory[mat] = newVal;
+  const numEl = document.getElementById('inv-num-' + slug(mat));
+  if (numEl) numEl.textContent = newVal;
+  saveLocal(); debouncedSync();
+  refreshTrapperCan();
+}
+
 function getCfg() {
   return { repo: localStorage.getItem('rdr2_repo')||'', branch: localStorage.getItem('rdr2_branch')||'main', token: localStorage.getItem('rdr2_token')||'' };
 }
@@ -136,7 +146,7 @@ function simRow(id, name, sub) {
 function buildAnimals() {
   const el = document.getElementById('tab-animals');
   const groups = [...new Set(AN.map(a=>a[0]))];
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-animals" onclick="toggleAllSec('tab-animals','btn-toggle-animals')">Collapse All</button></div>`;
   groups.forEach(grp => {
     const items = AN.filter(a=>a[0]===grp);
     const tot = items.reduce((s,a)=>[a[2],a[3],a[4],a[5]].reduce((ss,v)=>ss+(v?1:0),s),0);
@@ -152,7 +162,7 @@ function buildAnimals() {
 function buildPlants() {
   const el = document.getElementById('tab-plants');
   const cats = [...new Set(PL.map(p=>p[0]))];
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-plants" onclick="toggleAllSec('tab-plants','btn-toggle-plants')">Collapse All</button></div>`;
   cats.forEach(cat => {
     const items = PL.filter(p=>p[0]===cat);
     // For orchids, no recipe col
@@ -200,7 +210,8 @@ function buildFish() {
 
   // calculate total checkboxes for regular fish (3 per fish)
   const normTot = normal.length * 3;
-  let html = secHdr(`Fish (${normal.length} species)`, 'fp_fish', normTot);
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-fish" onclick="toggleAllSec('tab-fish','btn-toggle-fish')">Collapse All</button></div>`;
+  html += secHdr(`Fish (${normal.length} species)`, 'fp_fish', normTot);
   html += secBody('fp_fish');
   normal.forEach((f,i) => {
     const cells = FI_COLS_NORM.map((lbl,j) =>
@@ -233,7 +244,7 @@ function buildFish() {
 function buildHorses() {
   const el = document.getElementById('tab-horses');
   const breeds = [...new Set(HO.map(h=>h[0]))];
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-horses" onclick="toggleAllSec('tab-horses','btn-toggle-horses')">Collapse All</button></div>`;
   breeds.forEach(breed => {
     const coats = HO.map((h,i)=>({h,i})).filter(({h})=>h[0]===breed);
     // hasHorseman: breed counts for Horseman challenge if any coat has flag set
@@ -265,13 +276,15 @@ function buildHorses() {
 function buildWeapons() {
   const el = document.getElementById('tab-weapons');
   const cats = [...new Set(WE.map(w=>w[0]))];
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-weapons" onclick="toggleAllSec('tab-weapons','btn-toggle-weapons')">Collapse All</button></div>`;
   cats.forEach(cat => {
     const items = WE.map((w,i)=>({w,i})).filter(({w})=>w[0]===cat);
     html += secHdr(cat, `wp_${slug(cat)}`, items.length);
+    html += secBody(`wp_${slug(cat)}`);
     html += '<div class="ig">';
     items.forEach(({w,i}) => html += simRow(`we_${i}`,w[1],''));
     html += '</div>';
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
@@ -280,13 +293,15 @@ function buildWeapons() {
 function buildEquip() {
   const el = document.getElementById('tab-equip');
   const cats = [...new Set(EQ.map(e=>e[0]))];
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-equip" onclick="toggleAllSec('tab-equip','btn-toggle-equip')">Collapse All</button></div>`;
   cats.forEach(cat => {
     const items = EQ.map((e,i)=>({e,i})).filter(({e})=>e[0]===cat);
     html += secHdr(cat, `eqp_${slug(cat)}`, items.length);
+    html += secBody(`eqp_${slug(cat)}`);
     html += '<div class="ig">';
     items.forEach(({e,i}) => html += simRow(`eq_${i}`,e[1],e[2]));
     html += '</div>';
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
@@ -299,20 +314,28 @@ function buildTrapper() {
   let invHtml = `<div class="inv-panel" id="inv-panel">
     <div class="inv-title">✦ INVENTORY</div>`;
   TR_MATS.forEach(mat => {
+    const v = getInv(mat);
     invHtml += `<div class="inv-item">
       <span class="inv-name" id="inv-name-${slug(mat)}">${mat}</span>
-      <input type="number" class="inv-input" min="0" max="99" value="${getInv(mat)}"
-        id="inv-${slug(mat)}" oninput="setInv('${mat}',this.value)" onclick="this.select()"/>
+      <div class="inv-counter" id="inv-${slug(mat)}"
+        onclick="bumpInv('${mat}',1)"
+        oncontextmenu="event.preventDefault();bumpInv('${mat}',-1)"
+        title="Click to add · Right-click to subtract">
+        <span class="inv-minus" onclick="event.stopPropagation();bumpInv('${mat}',-1)">−</span>
+        <span class="inv-num" id="inv-num-${slug(mat)}">${v}</span>
+        <span class="inv-plus">+</span>
+      </div>
     </div>`;
   });
   invHtml += '</div>';
 
   // Build craftable items
   const cats = [...new Set(TR.map(t=>t[0]))];
-  let itemHtml = '<div id="tr-items">';
+  let itemHtml = '<div id="tr-items"><div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-trapper" onclick="toggleAllSec(\'tab-trapper\',\'btn-toggle-trapper\')">Collapse All</button></div>';
   cats.forEach(cat => {
     const items = TR.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
     itemHtml += secHdr(cat, `trp_${slug(cat)}`, items.length);
+    itemHtml += secBody(`trp_${slug(cat)}`);
     items.forEach(({t,i}) => {
       const mats = t[2]; // [[mat,qty],...]
       const chips = mats.map(([m,q]) => {
@@ -329,6 +352,7 @@ function buildTrapper() {
         <div class="tr-mats">${chips}</div>
       </div>`;
     });
+    itemHtml += secBodyEnd();
   });
   itemHtml += '</div>';
 
@@ -397,8 +421,8 @@ function toggleTrapper(i) {
     if (nowOn) setInv(m, Math.max(0, cur - q));
     else       setInv(m, cur + q);
     // update input display
-    const inp = document.getElementById(`inv-${slug(m)}`);
-    if (inp) inp.value = getInv(m);
+    const numEl = document.getElementById(`inv-num-${slug(m)}`);
+    if (numEl) numEl.textContent = getInv(m);
   });
 
   const row = document.getElementById(`tr_${i}`);
@@ -413,7 +437,7 @@ function toggleTrapper(i) {
 function buildPearson() {
   const el = document.getElementById('tab-pearson');
   const cats = [...new Set(PE.map(p=>p[0]))];
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-pearson" onclick="toggleAllSec('tab-pearson','btn-toggle-pearson')">Collapse All</button></div>`;
   cats.forEach(cat => {
     const items = PE.map((p,i)=>({p,i})).filter(({p})=>p[0]===cat);
     html += secHdr(cat, `pep_${slug(cat)}`, items.length);
@@ -511,6 +535,23 @@ function toggleSec(sid) {
   document.getElementById(`cb_${sid}`)?.classList.toggle('open');
 }
 
+function toggleAllSec(tabId, btnId) {
+  const tab = document.getElementById(tabId);
+  const btn = document.getElementById(btnId);
+  if (!tab) return;
+  const headers = tab.querySelectorAll('.coll-hdr');
+  const anyOpen = [...headers].some(h => h.classList.contains('open'));
+  headers.forEach(h => {
+    h.classList.toggle('open', !anyOpen);
+    const raw = h.id;
+    const sid = raw.replace(/^(ch_|chh_|cigh_)/,'');
+    document.getElementById('cb_' + sid)?.classList.toggle('open', !anyOpen);
+    document.getElementById('chb_' + sid)?.classList.toggle('open', !anyOpen);
+    document.getElementById('cigb_' + sid)?.classList.toggle('open', !anyOpen);
+  });
+  if (btn) btn.textContent = anyOpen ? 'Expand All' : 'Collapse All';
+}
+
 function toggleAllChal() {
   const btn = document.getElementById('chal-toggle-btn');
   const anyOpen = Object.keys(CH).some(set => document.getElementById(`chh_${slug(set)}`)?.classList.contains('open'));
@@ -525,7 +566,7 @@ function toggleAllChal() {
 // ── STORY ──
 function buildStory() {
   const el = document.getElementById('tab-story');
-  let html = '';
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-story" onclick="toggleAllSec('tab-story','btn-toggle-story')">Collapse All</button></div>`;
   Object.entries(ST).forEach(([ch,missions]) => {
     html += secHdr(ch, `stp_${slug(ch)}`, missions.length);
     html += secBody(`stp_${slug(ch)}`);
@@ -545,29 +586,43 @@ function buildStory() {
   el.innerHTML = html;
 }
 
-// ── ACHIEVEMENTS ──
+// ── ACHIEVEMENTS — PS5 trophy layout ──
 function buildAchieve() {
   const el = document.getElementById('tab-achieve');
   const cats = [...new Set(AC.map(a=>a[1]))];
   const typeColor = {platinum:'#a67bd0',gold:'#E8B020',silver:'#aaa9ad',bronze:'#cd7f32'};
-  let html = '';
+  const typeIcon  = {
+    platinum:'<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#a67bd0"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#fff" font-family="serif">P</text></svg>',
+    gold:    '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#E8B020"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#0a0a10" font-family="serif">G</text></svg>',
+    silver:  '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#aaa9ad"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#0a0a10" font-family="serif">S</text></svg>',
+    bronze:  '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#cd7f32"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#fff" font-family="serif">B</text></svg>',
+  };
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-achieve" onclick="toggleAllSec('tab-achieve','btn-toggle-achieve')">Collapse All</button></div>`;
   cats.forEach(cat => {
     const items = AC.map((a,i)=>({a,i})).filter(({a})=>a[1]===cat);
     html += secHdr(cat, `acp_${slug(cat)}`, items.length);
     html += secBody(`acp_${slug(cat)}`);
-    html += '<div class="ig">';
     items.forEach(({a,i}) => {
       const col = typeColor[a[2]] || typeColor.bronze;
-      const badge = `<span style="font-size:9px;font-family:var(--font-d);letter-spacing:.04em;padding:1px 6px;border-radius:10px;border:1px solid ${col};color:${col};flex-shrink:0;white-space:nowrap;">${a[2]}</span>`;
-      html += `<div class="ir" id="ir_ac_${i}" onclick="toggleSimple('ac_${i}')">
-        <div class="ick" id="ick_ac_${i}"></div>
-        <div class="in" style="flex:1">${a[0]}</div>${badge}
+      const icon = typeIcon[a[2]] || typeIcon.bronze;
+      const desc = a[3] || '';
+      const done = !!D()[`ac_${i}`];
+      html += `<div class="ir${done?' on':''}" id="ir_ac_${i}" onclick="toggleSimple('ac_${i}')">
+        <div class="ick${done?' on':''}" id="ick_ac_${i}"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="in" style="display:flex;align-items:center;gap:6px;">
+            ${icon}<span>${a[0]}</span>
+          </div>
+          ${desc ? `<div class="isb">${desc}</div>` : ''}
+        </div>
+        <span style="font-size:9px;font-family:var(--font-d);letter-spacing:.04em;padding:1px 7px;border-radius:10px;border:1px solid ${col};color:${col};flex-shrink:0;white-space:nowrap;">${a[2].toUpperCase()}</span>
       </div>`;
     });
-    html += '</div>' + secBodyEnd();
+    html += secBodyEnd();
   });
   el.innerHTML = html;
 }
+
 
 // ── CIGARETTE CARDS (collapsible, default expanded) ──
 function buildCigs() {
