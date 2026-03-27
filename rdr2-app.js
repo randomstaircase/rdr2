@@ -93,6 +93,41 @@ function switchPT(name) {
 }
 function openMo()  { document.getElementById('mo').classList.add('open'); setTimeout(() => document.getElementById('pti').focus(), 50); }
 function closeMo() { document.getElementById('mo').classList.remove('open'); }
+function openRenamePT() {
+  if (!pt) { alert('Select a playthrough to rename.'); return; }
+  const mo = document.getElementById('mo-rename');
+  const inp = document.getElementById('rename-input');
+  if (inp) inp.value = pt;
+  if (mo) mo.style.display = 'flex';
+  setTimeout(() => { if(inp){inp.focus();inp.select();} }, 50);
+}
+function closeRenameMo() {
+  const mo = document.getElementById('mo-rename');
+  if (mo) mo.style.display = 'none';
+}
+function confirmRename() {
+  const newName = (document.getElementById('rename-input').value || '').trim();
+  if (!newName) return;
+  if (newName === pt) { closeRenameMo(); return; }
+  if (db.playthroughs[newName]) { alert('A playthrough with that name already exists.'); return; }
+  db.playthroughs[newName] = db.playthroughs[pt];
+  delete db.playthroughs[pt];
+  pt = newName;
+  closeRenameMo();
+  renderPTSel();
+  document.getElementById('pts').value = newName;
+  saveLocal(); syncGH();
+}
+function deletePT() {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  if (!confirm('Delete "' + pt + '"? This cannot be undone.')) return;
+  delete db.playthroughs[pt];
+  pt = null;
+  renderPTSel();
+  document.getElementById('pts').value = '';
+  switchPT('');
+  saveLocal(); syncGH();
+}
 function confPT() {
   const name = document.getElementById('pti').value.trim();
   if (!name) return;
@@ -306,132 +341,193 @@ function buildEquip() {
   el.innerHTML = html;
 }
 
-// ── TRAPPER (inventory panel + craftable rows) ──
+// ── TRAPPER — 3-group collapsible inventory + 16 outfits + individual items ──
 function buildTrapper() {
   const el = document.getElementById('tab-trapper');
 
-  // Build inventory panel
-  let invHtml = `<div class="inv-panel" id="inv-panel">
-    <div class="inv-title">✦ INVENTORY</div>`;
-  TR_MATS.forEach(mat => {
-    const v = getInv(mat);
-    invHtml += `<div class="inv-item">
-      <span class="inv-name" id="inv-name-${slug(mat)}">${mat}</span>
-      <div class="inv-counter" id="inv-${slug(mat)}"
-        onclick="bumpInv('${mat}',1)"
-        oncontextmenu="event.preventDefault();bumpInv('${mat}',-1)"
-        title="Click to add · Right-click to subtract">
-        <span class="inv-minus" onclick="event.stopPropagation();bumpInv('${mat}',-1)">−</span>
-        <span class="inv-num" id="inv-num-${slug(mat)}">${v}</span>
-        <span class="inv-plus">+</span>
-      </div>
-    </div>`;
-  });
-  invHtml += '</div>';
+  function invGroup(title, mats, gid) {
+    let h = '<div class="inv-group-hdr open" onclick="var b=document.getElementById(\'ig_' + gid + '\');b.classList.toggle(\'open\');this.classList.toggle(\'open\')"><span class="coll-arrow">▶</span><span>' + title + '</span></div>';
+    h += '<div class="coll-body open" id="ig_' + gid + '">';
+    mats.forEach(mat => {
+      const v = getInv(mat);
+      h += '<div class="inv-item"><span class="inv-name" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
+        '<div class="inv-counter" id="inv-' + slug(mat) + '" onclick="bumpInv(\'' + mat + '\',1)" oncontextmenu="event.preventDefault();bumpInv(\'' + mat + '\',-1)" title="Click +1 · Right-click −1">' +
+        '<span class="inv-minus" onclick="event.stopPropagation();bumpInv(\'' + mat + '\',-1)">−</span>' +
+        '<span class="inv-num" id="inv-num-' + slug(mat) + '">' + v + '</span>' +
+        '<span class="inv-plus">+</span></div></div>';
+    });
+    return h + '</div>';
+  }
 
-  // Build craftable items
-  const cats = [...new Set(TR.map(t=>t[0]))];
-  let itemHtml = '<div id="tr-items"><div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-trapper" onclick="toggleAllSec(\'tab-trapper\',\'btn-toggle-trapper\')">Collapse All</button></div>';
-  cats.forEach(cat => {
-    const items = TR.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
-    itemHtml += secHdr(cat, `trp_${slug(cat)}`, items.length);
-    itemHtml += secBody(`trp_${slug(cat)}`);
-    items.forEach(({t,i}) => {
-      const mats = t[2]; // [[mat,qty],...]
-      const chips = mats.map(([m,q]) => {
+  let invHtml = '<div class="inv-panel" id="inv-panel"><div class="inv-title">✦ INVENTORY</div>' +
+    invGroup('Animals', TR_MATS_ANIMALS, 'animals') +
+    invGroup('Feathers', TR_MATS_FEATHERS, 'feathers') +
+    invGroup('Legendary', TR_MATS_LEGENDARY, 'legendary') + '</div>';
+
+  let itemHtml = '<div id="tr-items"><div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">' +
+    '<button class="btn btn-ghost" id="btn-toggle-trapper" onclick="toggleAllSec(\'tab-trapper\',\'btn-toggle-trapper\')">Collapse All</button></div>';
+
+  // Outfits
+  itemHtml += secHdr('Garment Sets (16 Outfits)', 'trp_outfits', TR_OUTFITS.length);
+  itemHtml += secBody('trp_outfits');
+  TR_OUTFITS.forEach((outfit, oi) => {
+    const d = D();
+    const donePieces = outfit.pieces.filter((_,pi) => d['trp_' + oi + '_' + pi]).length;
+    const allDone = donePieces === outfit.pieces.length;
+    itemHtml += '<div class="tr-outfit" id="tro_wrap_' + oi + '">' +
+      '<div class="tr-outfit-hdr' + (allDone?' on':'') + '" onclick="toggleTrOutfit(' + oi + ')">' +
+      '<div class="ick' + (allDone?' on':'') + '" id="ick_tro_' + oi + '"></div>' +
+      '<span class="tr-outfit-name">' + outfit.name + '</span>' +
+      '<span class="tr-outfit-prog" id="trop_' + oi + '">' + donePieces + '/' + outfit.pieces.length + '</span>' +
+      '</div><div class="tr-outfit-body" id="trob_' + oi + '">';
+    outfit.pieces.forEach(([pname, pmats], pi) => {
+      const crafted = !!d['trp_' + oi + '_' + pi];
+      const can = pmats.every(([m,q]) => getInv(m) >= q);
+      const chips = pmats.map(([m,q]) => {
         const have = getInv(m);
-        const ok = have >= q;
-        return `<span class="mat-chip ${ok?'ok':'short'}" id="chip_tr_${i}_${slug(m)}">${m} (${have}/${q})</span>`;
+        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_' + oi + '_' + pi + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
       }).join('');
-      itemHtml += `<div class="tr-row" id="tr_${i}" onclick="toggleTrapper(${i})">
-        <div class="tr-top">
-          <div class="ick" id="ick_tr_${i}"></div>
-          <div class="tr-name">${t[1]}</div>
-          <div class="can-badge" id="can_${i}" style="display:none">CAN CRAFT</div>
-        </div>
-        <div class="tr-mats">${chips}</div>
-      </div>`;
+      let badge = '';
+      if (crafted) badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '" style="background:var(--success);color:#d0ffd8;">CRAFTED</div>';
+      else if (can) badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '">CAN CRAFT</div>';
+      else badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '" style="display:none"></div>';
+      itemHtml += '<div class="tr-row' + (crafted?' on':'') + (can&&!crafted?' can':'') + '" id="tr_' + oi + '_' + pi + '" onclick="toggleTrapperPiece(' + oi + ',' + pi + ')">' +
+        '<div class="tr-top"><div class="ick' + (crafted?' on':'') + '" id="ick_trp_' + oi + '_' + pi + '"></div>' +
+        '<div class="tr-name">' + pname + '</div>' + badge + '</div>' +
+        '<div class="tr-mats">' + chips + '</div></div>';
+    });
+    itemHtml += '</div></div>';
+  });
+  itemHtml += secBodyEnd();
+
+  // Individual items
+  const itemCats = [...new Set(TR_ITEMS.map(t=>t[0]))];
+  itemCats.forEach(cat => {
+    const items = TR_ITEMS.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
+    itemHtml += secHdr(cat, 'trp_' + slug(cat), items.length);
+    itemHtml += secBody('trp_' + slug(cat));
+    items.forEach(({t,i}) => {
+      const crafted = !!D()['tri_' + i];
+      const can = t[2].every(([m,q]) => getInv(m) >= q);
+      const chips = t[2].map(([m,q]) => {
+        const have = getInv(m);
+        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_tri_' + i + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
+      }).join('');
+      let badge = '';
+      if (crafted) badge = '<div class="can-badge" id="can_tri_' + i + '" style="background:var(--success);color:#d0ffd8;">CRAFTED</div>';
+      else if (can) badge = '<div class="can-badge" id="can_tri_' + i + '">CAN CRAFT</div>';
+      else badge = '<div class="can-badge" id="can_tri_' + i + '" style="display:none"></div>';
+      itemHtml += '<div class="tr-row' + (crafted?' on':'') + (can&&!crafted?' can':'') + '" id="tri_row_' + i + '" onclick="toggleTrapperItem(' + i + ')">' +
+        '<div class="tr-top"><div class="ick' + (crafted?' on':'') + '" id="ick_tri_' + i + '"></div><div class="tr-name">' + t[1] + '</div>' + badge + '</div>' +
+        '<div class="tr-mats">' + chips + '</div></div>';
     });
     itemHtml += secBodyEnd();
   });
   itemHtml += '</div>';
 
-  el.innerHTML = `<div class="trapper-layout" style="display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start;">${invHtml}${itemHtml}</div>`;
-  refreshTrapperCan();
+  el.innerHTML = '<div class="trapper-layout" style="display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start;">' + invHtml + itemHtml + '</div>';
 }
 
-function canCraft(i) {
-  const t = TR[i];
-  return t[2].every(([m,q]) => getInv(m) >= q);
-}
-
-function refreshTrapperCan() {
-  TR.forEach((t,i) => {
-    const row = document.getElementById(`tr_${i}`); if (!row) return;
-    const badge = document.getElementById(`can_${i}`);
-    const d = D();
-    const crafted = !!d[`tr_${i}`];
-    const can = !crafted && canCraft(i);
-    row.classList.toggle('can', can);
-    if (badge) {
-      if (crafted) {
-        badge.textContent = 'CRAFTED';
-        badge.style.background = 'var(--success)';
-        badge.style.color = '#d0ffd8';
-        badge.style.display = '';
-      } else if (can) {
-        badge.textContent = 'CAN CRAFT';
-        badge.style.background = 'var(--can-craft-b)';
-        badge.style.color = '#a0d8f0';
-        badge.style.display = '';
-      } else {
-        badge.style.display = 'none';
-      }
-    }
-    // update chips
-    t[2].forEach(([m,q]) => {
-      const chip = document.getElementById(`chip_tr_${i}_${slug(m)}`);
-      if (chip) {
-        const have = getInv(m);
-        chip.className = `mat-chip ${have>=q?'ok':'short'}`;
-        chip.textContent = `${m} (${have}/${q})`;
-      }
-    });
-    // update inv-name color
-    TR_MATS.forEach(mat => {
-      const el = document.getElementById(`inv-name-${slug(mat)}`); if (!el) return;
-      // low if any uncrafted item needs more than we have
-      const anyShort = TR.some((t,ti) => !d[`tr_${ti}`] && t[2].some(([m,q])=>m===mat && getInv(m)<q));
-      el.classList.toggle('inv-low', anyShort);
-    });
-  });
-}
-
-function toggleTrapper(i) {
+function toggleTrOutfit(oi) {
   if (!pt) { alert('Select a playthrough first.'); return; }
-  const id = `tr_${i}`;
-  const wasOn = !!D()[id];
-  const nowOn = !wasOn;
-  setD(id, nowOn);
-
-  // adjust inventory
-  const t = TR[i];
-  t[2].forEach(([m,q]) => {
-    const cur = getInv(m);
-    if (nowOn) setInv(m, Math.max(0, cur - q));
-    else       setInv(m, cur + q);
-    // update input display
-    const numEl = document.getElementById(`inv-num-${slug(m)}`);
-    if (numEl) numEl.textContent = getInv(m);
+  const outfit = TR_OUTFITS[oi];
+  const allDone = outfit.pieces.every((_,pi) => D()['trp_' + oi + '_' + pi]);
+  outfit.pieces.forEach((_,pi) => {
+    const nowOn = !allDone;
+    setD('trp_' + oi + '_' + pi, nowOn ? true : null);
+    document.getElementById('tr_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+    document.getElementById('ick_trp_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
   });
+  checkOutfitDone(oi);
+  updateOverview();
+}
 
-  const row = document.getElementById(`tr_${i}`);
-  const ick = document.getElementById(`ick_tr_${i}`);
-  if (row) row.classList.toggle('on', nowOn);
-  if (ick) ick.classList.toggle('on', nowOn);
+function toggleTrapperPiece(oi, pi) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  const pid = 'trp_' + oi + '_' + pi;
+  const nowOn = !D()[pid];
+  setD(pid, nowOn ? true : null);
+  document.getElementById('tr_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+  document.getElementById('ick_trp_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+  const [,pmats] = TR_OUTFITS[oi].pieces[pi];
+  pmats.forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
+  checkOutfitDone(oi);
+  updateOverview();
+}
+
+function checkOutfitDone(oi) {
+  const outfit = TR_OUTFITS[oi];
+  const done = outfit.pieces.filter((_,pi) => D()['trp_' + oi + '_' + pi]).length;
+  const allDone = done === outfit.pieces.length;
+  const hdr = document.querySelector('#tro_wrap_' + oi + ' .tr-outfit-hdr');
+  const ick = document.getElementById('ick_tro_' + oi);
+  if (hdr) hdr.classList.toggle('on', allDone);
+  if (ick) ick.classList.toggle('on', allDone);
+  const prog = document.getElementById('trop_' + oi);
+  if (prog) prog.textContent = done + '/' + outfit.pieces.length;
+}
+
+function toggleTrapperItem(i) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  const id = 'tri_' + i;
+  const nowOn = !D()[id];
+  setD(id, nowOn ? true : null);
+  document.getElementById('tri_row_' + i)?.classList.toggle('on', nowOn);
+  document.getElementById('ick_tri_' + i)?.classList.toggle('on', nowOn);
+  TR_ITEMS[i][2].forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
   refreshTrapperCan();
   updateOverview();
 }
+
+
+function canCraft(i) {
+  return TR_ITEMS[i] && TR_ITEMS[i][2].every(([m,q]) => getInv(m) >= q);
+}
+
+function refreshTrapperCan() {
+  const d = D();
+  TR_OUTFITS.forEach((outfit, oi) => {
+    outfit.pieces.forEach(([,pmats], pi) => {
+      const crafted = !!d['trp_' + oi + '_' + pi];
+      const can = pmats.every(([m,q]) => getInv(m) >= q);
+      const row = document.getElementById('tr_' + oi + '_' + pi);
+      const badge = document.getElementById('can_' + oi + '_' + pi);
+      if (row) row.classList.toggle('can', can && !crafted);
+      if (badge) {
+        if (crafted) { badge.textContent='CRAFTED'; badge.style.background='var(--success)'; badge.style.color='#d0ffd8'; badge.style.display=''; }
+        else if (can) { badge.textContent='CAN CRAFT'; badge.style.background=''; badge.style.color=''; badge.style.display=''; }
+        else badge.style.display='none';
+      }
+      pmats.forEach(([m,q]) => {
+        const chip = document.getElementById('chip_' + oi + '_' + pi + '_' + slug(m));
+        if (chip) { const have=getInv(m); chip.className='mat-chip '+(have>=q?'ok':'short'); chip.textContent=m+' ('+have+'/'+q+')'; }
+      });
+    });
+  });
+  TR_ITEMS.forEach((t,i) => {
+    const crafted = !!d['tri_' + i];
+    const can = t[2].every(([m,q]) => getInv(m) >= q);
+    const row = document.getElementById('tri_row_' + i);
+    const badge = document.getElementById('can_tri_' + i);
+    if (row) row.classList.toggle('can', can && !crafted);
+    if (badge) {
+      if (crafted) { badge.textContent='CRAFTED'; badge.style.background='var(--success)'; badge.style.color='#d0ffd8'; badge.style.display=''; }
+      else if (can) { badge.textContent='CAN CRAFT'; badge.style.background=''; badge.style.color=''; badge.style.display=''; }
+      else badge.style.display='none';
+    }
+    t[2].forEach(([m,q]) => {
+      const chip = document.getElementById('chip_tri_'+i+'_'+slug(m));
+      if (chip) { const have=getInv(m); chip.className='mat-chip '+(have>=q?'ok':'short'); chip.textContent=m+' ('+have+'/'+q+')'; }
+    });
+  });
+  TR_MATS.forEach(mat => {
+    const el = document.getElementById('inv-name-'+slug(mat)); if (!el) return;
+    const anyShort = TR_ITEMS.some((t,i)=>!d['tri_'+i]&&t[2].some(([m,q])=>m===mat&&getInv(m)<q))
+      || TR_OUTFITS.some((o,oi)=>o.pieces.some(([,pm],pi)=>!d['trp_'+oi+'_'+pi]&&pm.some(([m,q])=>m===mat&&getInv(m)<q)));
+    el.classList.toggle('inv-low', anyShort);
+  });
+}
+
 
 // ── PEARSON (individual pelt checkboxes per requirement) ──
 function buildPearson() {
