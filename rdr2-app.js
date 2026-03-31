@@ -345,24 +345,33 @@ function buildEquip() {
 function buildTrapper() {
   const el = document.getElementById('tab-trapper');
 
-  function invGroup(title, mats, gid) {
+  function invGroup(title, mats, gid, isLeg) {
     let h = '<div class="inv-group-hdr open" onclick="var b=document.getElementById(\'ig_' + gid + '\');b.classList.toggle(\'open\');this.classList.toggle(\'open\')"><span class="coll-arrow">▶</span><span>' + title + '</span></div>';
     h += '<div class="coll-body open" id="ig_' + gid + '">';
     mats.forEach(mat => {
-      const v = getInv(mat);
-      h += '<div class="inv-item"><span class="inv-name" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
-        '<div class="inv-counter" id="inv-' + slug(mat) + '" onclick="bumpInv(\'' + mat + '\',1)" oncontextmenu="event.preventDefault();bumpInv(\'' + mat + '\',-1)" title="Click +1 · Right-click −1">' +
-        '<span class="inv-minus" onclick="event.stopPropagation();bumpInv(\'' + mat + '\',-1)">−</span>' +
-        '<span class="inv-num" id="inv-num-' + slug(mat) + '">' + v + '</span>' +
-        '<span class="inv-plus">+</span></div></div>';
+      if (isLeg) {
+        // Legendary: toggle (hunted or not)
+        const have = getInv(mat) > 0;
+        h += '<div class="inv-item" style="cursor:pointer;" onclick="toggleLegMat(\'' + mat + '\')">' +
+          '<span class="inv-name" id="inv-name-' + slug(mat) + '" style="' + (have ? 'color:var(--straw)' : '') + '">' + mat + '</span>' +
+          '<div class="mb' + (have ? ' on' : '') + '" id="leg-mb-' + slug(mat) + '" style="flex-shrink:0;width:14px;height:14px;border:1.5px solid var(--border);border-radius:2px;background:var(--panel2);position:relative;"></div>' +
+          '</div>';
+      } else {
+        const v = getInv(mat);
+        h += '<div class="inv-item"><span class="inv-name" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
+          '<div class="inv-counter" id="inv-' + slug(mat) + '" onclick="bumpInv(\'' + mat + '\',1)" oncontextmenu="event.preventDefault();bumpInv(\'' + mat + '\',-1)" title="Click +1 · Right-click −1">' +
+          '<span class="inv-minus" onclick="event.stopPropagation();bumpInv(\'' + mat + '\',-1)">−</span>' +
+          '<span class="inv-num" id="inv-num-' + slug(mat) + '">' + v + '</span>' +
+          '<span class="inv-plus">+</span></div></div>';
+      }
     });
     return h + '</div>';
   }
 
   let invHtml = '<div class="inv-panel" id="inv-panel"><div class="inv-title">✦ INVENTORY</div>' +
-    invGroup('Animals', TR_MATS_ANIMALS, 'animals') +
-    invGroup('Feathers', TR_MATS_FEATHERS, 'feathers') +
-    invGroup('Legendary', TR_MATS_LEGENDARY, 'legendary') + '</div>';
+    invGroup('Animals', TR_MATS_ANIMALS, 'animals', false) +
+    invGroup('Feathers', TR_MATS_FEATHERS, 'feathers', false) +
+    invGroup('Legendary', TR_MATS_LEGENDARY, 'legendary', true) + '</div>';
 
   let itemHtml = '<div id="tr-items"><div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">' +
     '<button class="btn btn-ghost" id="btn-toggle-trapper" onclick="toggleAllSec(\'tab-trapper\',\'btn-toggle-trapper\')">Collapse All</button></div>';
@@ -371,9 +380,9 @@ function buildTrapper() {
   itemHtml += secHdr('Garment Sets (16 Outfits)', 'trp_outfits', TR_OUTFITS.length);
   itemHtml += secBody('trp_outfits');
   TR_OUTFITS.forEach((outfit, oi) => {
-    const d = D();
-    const donePieces = outfit.pieces.filter((_,pi) => d['trp_' + oi + '_' + pi]).length;
-    const allDone = donePieces === outfit.pieces.length;
+    const d = {};  // empty at build time; renderAllChecks fills in real state
+    const donePieces = 0;
+    const allDone = false;
     itemHtml += '<div class="tr-outfit" id="tro_wrap_' + oi + '">' +
       '<div class="tr-outfit-hdr' + (allDone?' on':'') + '" onclick="toggleTrOutfit(' + oi + ')">' +
       '<div class="ick' + (allDone?' on':'') + '" id="ick_tro_' + oi + '"></div>' +
@@ -381,8 +390,8 @@ function buildTrapper() {
       '<span class="tr-outfit-prog" id="trop_' + oi + '">' + donePieces + '/' + outfit.pieces.length + '</span>' +
       '</div><div class="tr-outfit-body" id="trob_' + oi + '">';
     outfit.pieces.forEach(([pname, pmats], pi) => {
-      const crafted = !!d['trp_' + oi + '_' + pi];
-      const can = pmats.every(([m,q]) => getInv(m) >= q);
+      const crafted = false;
+      const can = false;
       const chips = pmats.map(([m,q]) => {
         const have = getInv(m);
         return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_' + oi + '_' + pi + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
@@ -407,8 +416,8 @@ function buildTrapper() {
     itemHtml += secHdr(cat, 'trp_' + slug(cat), items.length);
     itemHtml += secBody('trp_' + slug(cat));
     items.forEach(({t,i}) => {
-      const crafted = !!D()['tri_' + i];
-      const can = t[2].every(([m,q]) => getInv(m) >= q);
+      const crafted = false;  // filled by renderAllChecks
+      const can = false;      // filled by refreshTrapperCan
       const chips = t[2].map(([m,q]) => {
         const have = getInv(m);
         return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_tri_' + i + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
@@ -484,6 +493,18 @@ function canCraft(i) {
   return TR_ITEMS[i] && TR_ITEMS[i][2].every(([m,q]) => getInv(m) >= q);
 }
 
+function toggleLegMat(mat) {
+  const cur = getInv(mat);
+  const nw = cur > 0 ? 0 : 1;
+  db.inventory[mat] = nw;
+  const mb = document.getElementById('leg-mb-' + slug(mat));
+  const nm = document.getElementById('inv-name-' + slug(mat));
+  if (mb) mb.classList.toggle('on', nw > 0);
+  if (nm) nm.style.color = nw > 0 ? 'var(--straw)' : '';
+  saveLocal(); debouncedSync();
+  refreshTrapperCan();
+}
+
 function refreshTrapperCan() {
   const d = D();
   TR_OUTFITS.forEach((outfit, oi) => {
@@ -547,12 +568,14 @@ function buildPearson() {
           <span class="pe-req-name">${m}</span>
         </div>`;
       }).join('');
-      html += `<div class="pe-item" id="pe_${i}">
+      // Ledger items (no reqs) are a simple row click-to-check
+      const isSimple = reqs.length === 0;
+      html += `<div class="pe-item${isSimple?' pe-simple':''}" id="pe_${i}" ${isSimple?'onclick="togglePeItem('+i+')" style="cursor:pointer;"':''}>
         <div class="pe-header" onclick="togglePeItem(${i})">
           <div class="ick" id="ick_pe_${i}"></div>
           <div class="pe-name">${p[1]}</div>
         </div>
-        <div class="pe-reqs">${reqBoxes}</div>
+        ${reqBoxes ? `<div class="pe-reqs">${reqBoxes}</div>` : ''}
       </div>`;
     });
     html += secBodyEnd();
@@ -571,9 +594,16 @@ function togglePeReq(reqId, itemIdx) {
 }
 
 function togglePeItem(i) {
-  // clicking the header toggles all reqs
   if (!pt) { alert('Select a playthrough first.'); return; }
   const p = PE[i];
+  if (p[2].length === 0) {
+    // Ledger item — no materials, just a simple toggle
+    const cur = !!D()[`pe_${i}_done`];
+    setD(`pe_${i}_done`, !cur);
+    checkPeItemDone(i);
+    updateOverview();
+    return;
+  }
   const allDone = p[2].every((_,ri) => D()[`pe_${i}_r${ri}`]);
   const newVal = !allDone;
   p[2].forEach((_,ri) => {
@@ -587,7 +617,10 @@ function togglePeItem(i) {
 
 function checkPeItemDone(i) {
   const p = PE[i];
-  const allDone = p[2].every((_,ri) => D()[`pe_${i}_r${ri}`]);
+  // If no material requirements (e.g. ledger items), use explicit toggle key instead
+  const allDone = p[2].length === 0
+    ? !!D()[`pe_${i}_done`]
+    : p[2].every((_,ri) => D()[`pe_${i}_r${ri}`]);
   const row = document.getElementById(`pe_${i}`);
   const ick = document.getElementById(`ick_pe_${i}`);
   if (row) row.classList.toggle('on', allDone);
@@ -1009,10 +1042,13 @@ function updateSectionProgress(d) {
     const items=TR.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
     setTxt(`trp_${slug(cat)}`,`${items.filter(({i})=>d[`tr_${i}`]).length}/${items.length}`);
   });
-  // Pearson
+  // Pearson / Camp
   [...new Set(PE.map(p=>p[0]))].forEach(cat=>{
     const items=PE.map((p,i)=>({p,i})).filter(({p})=>p[0]===cat);
-    const done=items.filter(({p,i})=>p[2].every((_,ri)=>d[`pe_${i}_r${ri}`])).length;
+    const done=items.filter(({p,i})=>{
+      if(p[2].length===0) return !!d[`pe_${i}_done`];
+      return p[2].every((_,ri)=>d[`pe_${i}_r${ri}`]);
+    }).length;
     setTxt(`pep_${slug(cat)}`,`${done}/${items.length}`);
   });
   // Challenges
