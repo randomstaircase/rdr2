@@ -161,12 +161,15 @@ function secBody(progId) {
 function secBodyEnd() { return '</div>'; }
 
 // ── Multi-check row helper ──
-function mcRow(prefix, i, label, cols, colLabels, extraClass) {
+function mcRow(prefix, i, label, cols, colLabels, extraClass, subtitle) {
   const cells = cols.map((active, j) => {
     if (!active) return `<div class="mc na"><div class="mcl">${colLabels[j]}</div><div class="mb"></div></div>`;
     return `<div class="mc" onclick="toggleMC('${prefix}${i}',${j})"><div class="mcl">${colLabels[j]}</div><div class="mb" id="mb_${prefix}${i}_${j}"></div></div>`;
   }).join('');
-  return `<div class="mr${extraClass?' '+extraClass:''}" id="mr_${prefix}${i}"><div class="ml">${label}</div><div class="mcc">${cells}</div></div>`;
+  const labelHtml = subtitle
+    ? `<div>${label}<small style="display:block;font-size:10px;color:var(--muted);margin-top:1px;">${subtitle}</small></div>`
+    : label;
+  return `<div class="mr${extraClass?' '+extraClass:''}" id="mr_${prefix}${i}"><div class="ml">${labelHtml}</div><div class="mcc">${cells}</div></div>`;
 }
 
 // ── Simple item row ──
@@ -235,16 +238,16 @@ function buildPlants() {
   el.innerHTML = html;
 }
 
-// ── FISH: Caught/Baited/Survivalist for regular; Caught-only for legendary ──
-const FI_COLS_NORM = ['CAUGHT','BAITED','SURVIVALIST'];
+// ── FISH: Caught + Survivalist for regular; Caught-only for legendary ──
+const FI_COLS_NORM = ['CAUGHT','SURVIVALIST'];
 
 function buildFish() {
   const el = document.getElementById('tab-fish');
   const normal = FI.filter(f=>!f[1]);
   const leg    = FI.filter(f=>f[1]);
 
-  // calculate total checkboxes for regular fish (3 per fish)
-  const normTot = normal.length * 3;
+  // 2 checkboxes per normal fish (Caught + Survivalist)
+  const normTot = normal.length * 2;
   let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-fish" onclick="toggleAllSec('tab-fish','btn-toggle-fish')">Collapse All</button></div>`;
   html += secHdr(`Fish (${normal.length} species)`, 'fp_fish', normTot);
   html += secBody('fp_fish');
@@ -275,15 +278,14 @@ function buildFish() {
   el.innerHTML = html;
 }
 
-// ── HORSES (Horseman = one per breed) ──
+// ── HORSES ── [breed, coat, type, location, studied, bonded, ridden, hasHorseman]
 function buildHorses() {
   const el = document.getElementById('tab-horses');
   const breeds = [...new Set(HO.map(h=>h[0]))];
   let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-horses" onclick="toggleAllSec('tab-horses','btn-toggle-horses')">Collapse All</button></div>`;
   breeds.forEach(breed => {
     const coats = HO.map((h,i)=>({h,i})).filter(({h})=>h[0]===breed);
-    // hasHorseman: breed counts for Horseman challenge if any coat has flag set
-    const hasHorseman = coats.some(({h})=>h[4]===1);
+    const hasHorseman = coats.some(({h})=>h[7]===1);
     const tot = coats.length * 3 + (hasHorseman ? 1 : 0);
     html += `<div class="coll-hdr open" id="ch_hp_${slug(breed)}" onclick="toggleSec('hp_${slug(breed)}')">
       <span class="coll-arrow">▶</span>
@@ -300,7 +302,7 @@ function buildHorses() {
       </div>`;
     }
     coats.forEach(({h,i}) => {
-      html += mcRow('ho_',i,h[1],[h[2],h[3],h[4]].slice(0,3),HO_COLS);
+      html += mcRow('ho_',i,h[1],[h[4],h[5],h[6]],HO_COLS,null,`${h[2]} · ${h[3]}`);
     });
     html += secBodyEnd();
   });
@@ -877,7 +879,7 @@ function renderAllChecks() {
   // horseman breed checkboxes
   const hmBreeds = [...new Set(HO.map(h=>h[0]))];
   hmBreeds.forEach(breed => {
-    if (!HO.filter(h=>h[0]===breed).some(h=>h[4]===1)) return;
+    if (!HO.filter(h=>h[0]===breed).some(h=>h[7]===1)) return;
     const hmId = `ho_hm_${slug(breed)}`;
     const on = !!d[hmId];
     document.getElementById(`mb_${hmId}`)?.classList.toggle('on', on);
@@ -951,7 +953,7 @@ function updateOverview() {
   // Fish — 3 checkboxes per normal fish, 1 per legendary
   let fiTot=0,fiDon=0;
   FI.filter(f=>!f[1]).forEach((_,i)=>{
-    [0,1,2].forEach(j=>{fiTot++;if(d[`fi_${i}_${j}`])fiDon++;});
+    [0,1].forEach(j=>{fiTot++;if(d[`fi_${i}_${j}`])fiDon++;});
   });
   FI.filter(f=>f[1]).forEach((_,i)=>{fiTot++;if(d[`fl_${i}_0`])fiDon++;});
   setTxt('ov-fi',`${fiDon}/${fiTot}`); setBar('pb-fi',fiTot?fiDon/fiTot*100:0);
@@ -959,11 +961,11 @@ function updateOverview() {
   // Horses (studied/bonded/ridden per coat + 1 horseman per qualifying breed)
   let hoTot=0,hoDon=0;
   HO.forEach((h,i)=>{
-    [h[2],h[3],h[4]].forEach((v,j)=>{if(v){hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}});
+    [h[4],h[5],h[6]].forEach((v,j)=>{if(v){hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}});
   });
   const hoBreeds=[...new Set(HO.map(h=>h[0]))];
   hoBreeds.forEach(breed=>{
-    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
+    if(HO.filter(h=>h[0]===breed).some(h=>h[7]===1)){
       hoTot++; if(d[`ho_hm_${slug(breed)}`])hoDon++;
     }
   });
@@ -1013,7 +1015,7 @@ function updateSectionProgress(d) {
   });
   // Fish
   { let tot=0,don=0;
-    FI.filter(f=>!f[1]).forEach((_,i)=>{ [0,1,2].forEach(j=>{ tot++; if(d[`fi_${i}_${j}`]) don++; }); });
+    FI.filter(f=>!f[1]).forEach((_,i)=>{ [0,1].forEach(j=>{ tot++; if(d[`fi_${i}_${j}`]) don++; }); });
     setTxt('fp_fish',`${don}/${tot}`); }
   { let tot=0,don=0;
     FI.filter(f=>f[1]).forEach((_,i)=>{ tot++; if(d[`fl_${i}_0`]) don++; });
@@ -1021,8 +1023,8 @@ function updateSectionProgress(d) {
   // Horses by breed (coats + horseman per breed)
   [...new Set(HO.map(h=>h[0]))].forEach(breed=>{
     let tot=0,don=0;
-    HO.forEach((h,i)=>{if(h[0]!==breed)return;[h[2],h[3],h[4]].forEach((v,j)=>{if(v){tot++;if(d[`ho_${i}_${j}`])don++;}});});
-    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
+    HO.forEach((h,i)=>{if(h[0]!==breed)return;[h[4],h[5],h[6]].forEach((v,j)=>{if(v){tot++;if(d[`ho_${i}_${j}`])don++;}});});
+    if(HO.filter(h=>h[0]===breed).some(h=>h[7]===1)){
       tot++; if(d[`ho_hm_${slug(breed)}`])don++;
     }
     setTxt(`hp_${slug(breed)}`,`${don}/${tot}`);
