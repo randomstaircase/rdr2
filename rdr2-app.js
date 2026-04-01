@@ -568,10 +568,10 @@ function buildPearson() {
           <span class="pe-req-name">${m}</span>
         </div>`;
       }).join('');
-      // Ledger items (no reqs) are a simple row click-to-check
+      // Simple items (no reqs = ledger) have one click handler on the header only
       const isSimple = reqs.length === 0;
-      html += `<div class="pe-item${isSimple?' pe-simple':''}" id="pe_${i}" ${isSimple?'onclick="togglePeItem('+i+')" style="cursor:pointer;"':''}>
-        <div class="pe-header" onclick="togglePeItem(${i})">
+      html += `<div class="pe-item" id="pe_${i}">
+        <div class="pe-header" onclick="togglePeItem(${i})" style="${isSimple?'cursor:pointer;':''}">
           <div class="ick" id="ick_pe_${i}"></div>
           <div class="pe-name">${p[1]}</div>
         </div>
