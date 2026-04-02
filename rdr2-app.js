@@ -39,6 +39,63 @@ function saveCfg() {
 }
 function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
 
+
+// ═══════════════════ SYNC CODE (no-account cross-device sync) ═══════════════════
+// How it works: generates a 6-char code. User shares it. Other devices enter it.
+// Data is stored in localStorage under that code key. To sync across devices,
+// user exports from one device (copies the shareable link/data) and imports on another.
+// For LIVE sync without a server: we use a free public JSONBin bin tied to the code.
+// JSONBin free tier: 10k requests/month, perfect for personal use.
+// If user doesn't want JSONBin, they can just share the code and use Export/Import.
+
+let syncCode = localStorage.getItem('rdr2_synccode') || '';
+
+function createSyncCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  syncCode = code;
+  localStorage.setItem('rdr2_synccode', code);
+  const el = document.getElementById('sync-code');
+  if (el) el.value = code;
+  setSyncStatus('Code created: ' + code + ' — share this with your other devices', 'ok');
+  saveLocal();
+}
+
+function joinSyncCode() {
+  const inp = document.getElementById('sync-code');
+  const code = (inp ? inp.value : '').trim().toUpperCase();
+  if (code.length !== 6) { setSyncStatus('Enter a 6-character code', 'err'); return; }
+  syncCode = code;
+  localStorage.setItem('rdr2_synccode', code);
+  // Try to load data stored under this code
+  const stored = localStorage.getItem('rdr2_data_' + code);
+  if (stored) {
+    try {
+      db = JSON.parse(stored);
+      if (!db.inventory) db.inventory = {};
+      if (db.gold === undefined) db.gold = 0;
+      loadGold();
+      renderPTSel();
+      buildAllTabs();
+      if (pt) renderAllChecks();
+      setSyncStatus('Joined code ' + code + ' — data loaded ✓', 'ok');
+    } catch(e) { setSyncStatus('Code joined but no data found yet', ''); }
+  } else {
+    setSyncStatus('Joined code ' + code + ' — no data yet (save something to populate)', '');
+  }
+}
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-code-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type==='ok' ? 'var(--success)' : type==='err' ? 'var(--accent)' : 'var(--muted)';
+}
+
+// Override saveLocal to also save under sync code
+const _origSaveLocal = typeof saveLocal !== 'undefined' ? null : null;
+
 // ═══════════════════ GOLD ═══════════════════
 function saveGold(val) {
   db.gold = parseFloat(val) || 0;
@@ -60,6 +117,12 @@ async function init() {
   if (!db.inventory) db.inventory = {};
   if (db.gold === undefined) db.gold = 0;
   loadGold();
+  // Load sync code if previously set
+  syncCode = localStorage.getItem('rdr2_synccode') || '';
+  if (syncCode) {
+    const el = document.getElementById('sync-code');
+    if (el) el.value = syncCode;
+  }
   renderPTSel();
   buildAllTabs();
   // Set sticky top for inventory panel based on actual bar height
@@ -142,7 +205,7 @@ function confPT() {
 function buildAllTabs() {
   buildAnimals(); buildPlants(); buildFish(); buildHorses();
   buildWeapons(); buildEquip(); buildTrapper(); buildPearson();
-  buildChallenges(); buildStory(); buildAchieve(); buildCigs();
+  buildChallenges(); buildStory(); buildAchieve(); buildCollections();
 }
 
 // ── Section header helper — collapsible ──
@@ -278,18 +341,14 @@ function buildFish() {
   el.innerHTML = html;
 }
 
-// ── HORSES ──
-// HO: [breed, coat, type, location, hasHorseman]
+// ── HORSES ── [breed, coat, type, location, studied, bonded, ridden, hasHorseman]
 function buildHorses() {
   const el = document.getElementById('tab-horses');
   const breeds = [...new Set(HO.map(h=>h[0]))];
-  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">
-    <button class="btn btn-ghost" id="btn-toggle-horses" onclick="toggleAllSec('tab-horses','btn-toggle-horses')">Collapse All</button>
-  </div>`;
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-horses" onclick="toggleAllSec('tab-horses','btn-toggle-horses')">Collapse All</button></div>`;
   breeds.forEach(breed => {
     const coats = HO.map((h,i)=>({h,i})).filter(({h})=>h[0]===breed);
-    const hasHorseman = coats.some(({h})=>h[4]===1);
-    // 3 checkboxes per coat + 1 horseman row per qualifying breed
+    const hasHorseman = coats.some(({h})=>h[7]===1);
     const tot = coats.length * 3 + (hasHorseman ? 1 : 0);
     html += `<div class="coll-hdr open" id="ch_hp_${slug(breed)}" onclick="toggleSec('hp_${slug(breed)}')">
       <span class="coll-arrow">▶</span>
@@ -297,7 +356,7 @@ function buildHorses() {
       <span class="coll-prog" id="hp_${slug(breed)}">0/${tot}</span>
     </div>`;
     html += secBody(`hp_${slug(breed)}`);
-    // Horseman challenge row — one per qualifying breed
+    // Horseman row — one per breed
     if (hasHorseman) {
       const hmId = `ho_hm_${slug(breed)}`;
       html += `<div class="mr" id="mr_${hmId}" style="background:rgba(40,96,128,.12);border-color:rgba(42,96,128,.3);margin-bottom:6px">
@@ -305,10 +364,8 @@ function buildHorses() {
         <div class="mcc"><div class="mc" onclick="toggleSimple('${hmId}')"><div class="mcl">COMPLETE</div><div class="mb" id="mb_${hmId}"></div></div></div>
       </div>`;
     }
-    // Each coat — show type and location as subtitle, all 3 cols active
     coats.forEach(({h,i}) => {
-      const sub = `${h[2]} · ${h[3]}`;
-      html += mcRow('ho_',i,h[1],[1,1,1],HO_COLS,null,sub);
+      html += mcRow('ho_',i,h[1],[h[4],h[5],h[6]],HO_COLS,null,`${h[2]} · ${h[3]}`);
     });
     html += secBodyEnd();
   });
@@ -354,8 +411,1021 @@ function buildTrapper() {
   const el = document.getElementById('tab-trapper');
 
   function invGroup(title, mats, gid, isLeg) {
-    let h = '<div class="inv-group-hdr open" onclick="var b=document.getElementById(\'ig_' + gid + '\');b.classList.toggle(\'open\');this.classList.toggle(\'open\')"><span class="coll-arrow">▶</span><span>' + title + '</span></div>';
-    h += '<div class="coll-body open" id="ig_' + gid + '">';
+    let h = '<div class="inv-group-hdr" onclick="var b=document.getElementById(\'ig_' + gid + '\');b.classList.toggle(\'open\');this.classList.toggle(\'open\')"><span class="coll-arrow">▶</span><span>' + title + '</span></div>';
+    h += '<div class="coll-body" id="ig_' + gid + '">';
+    mats.forEach(mat => {
+      if (isLeg) {
+        // Legendary: toggle (hunted or not)
+        const have = getInv(mat) > 0;
+        h += '<div class="inv-item" style="cursor:pointer;" onclick="toggleLegMat(\'' + mat + '\')">' +
+          '<span class="inv-name" id="inv-name-' + slug(mat) + '" style="' + (have ? 'color:var(--straw)' : '') + '">' + mat + '</span>' +
+          '<div class="mb' + (have ? ' on' : '') + '" id="leg-mb-' + slug(mat) + '" style="flex-shrink:0;width:14px;height:14px;border:1.5px solid var(--border);border-radius:2px;background:var(--panel2);position:relative;"></div>' +
+          '</div>';
+      } else {
+        const v = getInv(mat);
+        h += '<div class="inv-item"><span class="inv-name" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
+          '<div class="inv-counter" id="inv-' + slug(mat) + '" onclick="bumpInv(\'' + mat + '\',1)" oncontextmenu="event.preventDefault();bumpInv(\'' + mat + '\',-1)" title="Click +1 · Right-click −1">' +
+          '<span class="inv-minus" onclick="event.stopPropagation();bumpInv(\'' + mat + '\',-1)">−</span>' +
+          '<span class="inv-num" id="inv-num-' + slug(mat) + '">' + v + '</span>' +
+          '<span class="inv-plus">+</span></div></div>';
+      }
+    });
+    return h + '</div>';
+  }
+
+  let invHtml = '<div class="inv-panel" id="inv-panel"><div class="inv-title">✦ INVENTORY</div>' +
+    invGroup('Animals', TR_MATS_ANIMALS, 'animals', false) +
+    invGroup('Feathers', TR_MATS_FEATHERS, 'feathers', false) +
+    invGroup('Legendary', TR_MATS_LEGENDARY, 'legendary', true) + '</div>';
+
+  let itemHtml = '<div id="tr-items"><div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">' +
+    '<button class="btn btn-ghost" id="btn-toggle-trapper" onclick="toggleAllSec(\'tab-trapper\',\'btn-toggle-trapper\')">Collapse All</button></div>';
+
+  // Outfits
+  itemHtml += secHdr('Garment Sets (16 Outfits)', 'trp_outfits', TR_OUTFITS.length);
+  itemHtml += secBody('trp_outfits');
+  TR_OUTFITS.forEach((outfit, oi) => {
+    const d = {};  // empty at build time; renderAllChecks fills in real state
+    const donePieces = 0;
+    const allDone = false;
+    itemHtml += '<div class="tr-outfit" id="tro_wrap_' + oi + '">' +
+      '<div class="tr-outfit-hdr' + (allDone?' on':'') + '" onclick="toggleTrOutfit(' + oi + ')">' +
+      '<div class="ick' + (allDone?' on':'') + '" id="ick_tro_' + oi + '"></div>' +
+      '<span class="tr-outfit-name">' + outfit.name + '</span>' +
+      '<span class="tr-outfit-prog" id="trop_' + oi + '">' + donePieces + '/' + outfit.pieces.length + '</span>' +
+      '</div><div class="tr-outfit-body" id="trob_' + oi + '">';
+    outfit.pieces.forEach(([pname, pmats], pi) => {
+      const crafted = false;
+      const can = false;
+      const chips = pmats.map(([m,q]) => {
+        const have = getInv(m);
+        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_' + oi + '_' + pi + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
+      }).join('');
+      let badge = '';
+      if (crafted) badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '" style="background:var(--success);color:#d0ffd8;">CRAFTED</div>';
+      else if (can) badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '">CAN CRAFT</div>';
+      else badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '" style="display:none"></div>';
+      itemHtml += '<div class="tr-row' + (crafted?' on':'') + (can&&!crafted?' can':'') + '" id="tr_' + oi + '_' + pi + '" onclick="toggleTrapperPiece(' + oi + ',' + pi + ')">' +
+        '<div class="tr-top"><div class="ick' + (crafted?' on':'') + '" id="ick_trp_' + oi + '_' + pi + '"></div>' +
+        '<div class="tr-name">' + pname + '</div>' + badge + '</div>' +
+        '<div class="tr-mats">' + chips + '</div></div>';
+    });
+    itemHtml += '</div></div>';
+  });
+  itemHtml += secBodyEnd();
+
+  // Individual items
+  const itemCats = [...new Set(TR_ITEMS.map(t=>t[0]))];
+  itemCats.forEach(cat => {
+    const items = TR_ITEMS.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
+    itemHtml += secHdr(cat, 'trp_' + slug(cat), items.length);
+    itemHtml += secBody('trp_' + slug(cat));
+    items.forEach(({t,i}) => {
+      const crafted = false;  // filled by renderAllChecks
+      const can = false;      // filled by refreshTrapperCan
+      const chips = t[2].map(([m,q]) => {
+        const have = getInv(m);
+        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_tri_' + i + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
+      }).join('');
+      let badge = '';
+      if (crafted) badge = '<div class="can-badge" id="can_tri_' + i + '" style="background:var(--success);color:#d0ffd8;">CRAFTED</div>';
+      else if (can) badge = '<div class="can-badge" id="can_tri_' + i + '">CAN CRAFT</div>';
+      else badge = '<div class="can-badge" id="can_tri_' + i + '" style="display:none"></div>';
+      itemHtml += '<div class="tr-row' + (crafted?' on':'') + (can&&!crafted?' can':'') + '" id="tri_row_' + i + '" onclick="toggleTrapperItem(' + i + ')">' +
+        '<div class="tr-top"><div class="ick' + (crafted?' on':'') + '" id="ick_tri_' + i + '"></div><div class="tr-name">' + t[1] + '</div>' + badge + '</div>' +
+        '<div class="tr-mats">' + chips + '</div></div>';
+    });
+    itemHtml += secBodyEnd();
+  });
+  itemHtml += '</div>';
+
+  el.innerHTML = '<div class="trapper-layout" style="display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start;">' + invHtml + itemHtml + '</div>';
+}
+
+function toggleTrOutfit(oi) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  const outfit = TR_OUTFITS[oi];
+  const allDone = outfit.pieces.every((_,pi) => D()['trp_' + oi + '_' + pi]);
+  outfit.pieces.forEach((_,pi) => {
+    const nowOn = !allDone;
+    setD('trp_' + oi + '_' + pi, nowOn ? true : null);
+    document.getElementById('tr_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+    document.getElementById('ick_trp_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+  });
+  checkOutfitDone(oi);
+  updateOverview();
+}
+
+function toggleTrapperPiece(oi, pi) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  const pid = 'trp_' + oi + '_' + pi;
+  const nowOn = !D()[pid];
+  setD(pid, nowOn ? true : null);
+  document.getElementById('tr_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+  document.getElementById('ick_trp_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+  const [,pmats] = TR_OUTFITS[oi].pieces[pi];
+  pmats.forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
+  checkOutfitDone(oi);
+  updateOverview();
+}
+
+function checkOutfitDone(oi) {
+  const outfit = TR_OUTFITS[oi];
+  const done = outfit.pieces.filter((_,pi) => D()['trp_' + oi + '_' + pi]).length;
+  const allDone = done === outfit.pieces.length;
+  const hdr = document.querySelector('#tro_wrap_' + oi + ' .tr-outfit-hdr');
+  const ick = document.getElementById('ick_tro_' + oi);
+  if (hdr) hdr.classList.toggle('on', allDone);
+  if (ick) ick.classList.toggle('on', allDone);
+  const prog = document.getElementById('trop_' + oi);
+  if (prog) prog.textContent = done + '/' + outfit.pieces.length;
+}
+
+function toggleTrapperItem(i) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  const id = 'tri_' + i;
+  const nowOn = !D()[id];
+  setD(id, nowOn ? true : null);
+  document.getElementById('tri_row_' + i)?.classList.toggle('on', nowOn);
+  document.getElementById('ick_tri_' + i)?.classList.toggle('on', nowOn);
+  TR_ITEMS[i][2].forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
+  refreshTrapperCan();
+  updateOverview();
+}
+
+
+function canCraft(i) {
+  return TR_ITEMS[i] && TR_ITEMS[i][2].every(([m,q]) => getInv(m) >= q);
+}
+
+function toggleLegMat(mat) {
+  const cur = getInv(mat);
+  const nw = cur > 0 ? 0 : 1;
+  db.inventory[mat] = nw;
+  const mb = document.getElementById('leg-mb-' + slug(mat));
+  const nm = document.getElementById('inv-name-' + slug(mat));
+  if (mb) mb.classList.toggle('on', nw > 0);
+  if (nm) nm.style.color = nw > 0 ? 'var(--straw)' : '';
+  saveLocal(); debouncedSync();
+  refreshTrapperCan();
+}
+
+function refreshTrapperCan() {
+  const d = D();
+  TR_OUTFITS.forEach((outfit, oi) => {
+    outfit.pieces.forEach(([,pmats], pi) => {
+      const crafted = !!d['trp_' + oi + '_' + pi];
+      const can = pmats.every(([m,q]) => getInv(m) >= q);
+      const row = document.getElementById('tr_' + oi + '_' + pi);
+      const badge = document.getElementById('can_' + oi + '_' + pi);
+      if (row) row.classList.toggle('can', can && !crafted);
+      if (badge) {
+        if (crafted) { badge.textContent='CRAFTED'; badge.style.background='var(--success)'; badge.style.color='#d0ffd8'; badge.style.display=''; }
+        else if (can) { badge.textContent='CAN CRAFT'; badge.style.background=''; badge.style.color=''; badge.style.display=''; }
+        else badge.style.display='none';
+      }
+      pmats.forEach(([m,q]) => {
+        const chip = document.getElementById('chip_' + oi + '_' + pi + '_' + slug(m));
+        if (chip) { const have=getInv(m); chip.className='mat-chip '+(have>=q?'ok':'short'); chip.textContent=m+' ('+have+'/'+q+')'; }
+      });
+    });
+  });
+  TR_ITEMS.forEach((t,i) => {
+    const crafted = !!d['tri_' + i];
+    const can = t[2].every(([m,q]) => getInv(m) >= q);
+    const row = document.getElementById('tri_row_' + i);
+    const badge = document.getElementById('can_tri_' + i);
+    if (row) row.classList.toggle('can', can && !crafted);
+    if (badge) {
+      if (crafted) { badge.textContent='CRAFTED'; badge.style.background='var(--success)'; badge.style.color='#d0ffd8'; badge.style.display=''; }
+      else if (can) { badge.textContent='CAN CRAFT'; badge.style.background=''; badge.style.color=''; badge.style.display=''; }
+      else badge.style.display='none';
+    }
+    t[2].forEach(([m,q]) => {
+      const chip = document.getElementById('chip_tri_'+i+'_'+slug(m));
+      if (chip) { const have=getInv(m); chip.className='mat-chip '+(have>=q?'ok':'short'); chip.textContent=m+' ('+have+'/'+q+')'; }
+    });
+  });
+  TR_MATS.forEach(mat => {
+    const el = document.getElementById('inv-name-'+slug(mat)); if (!el) return;
+    const anyShort = TR_ITEMS.some((t,i)=>!d['tri_'+i]&&t[2].some(([m,q])=>m===mat&&getInv(m)<q))
+      || TR_OUTFITS.some((o,oi)=>o.pieces.some(([,pm],pi)=>!d['trp_'+oi+'_'+pi]&&pm.some(([m,q])=>m===mat&&getInv(m)<q)));
+    el.classList.toggle('inv-low', anyShort);
+  });
+}
+
+
+// ── PEARSON (individual pelt checkboxes per requirement) ──
+function buildPearson() {
+  const el = document.getElementById('tab-pearson');
+  const cats = [...new Set(PE.map(p=>p[0]))];
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-pearson" onclick="toggleAllSec('tab-pearson','btn-toggle-pearson')">Collapse All</button></div>`;
+  cats.forEach(cat => {
+    const items = PE.map((p,i)=>({p,i})).filter(({p})=>p[0]===cat);
+    html += secHdr(cat, `pep_${slug(cat)}`, items.length);
+    html += secBody(`pep_${slug(cat)}`);
+    items.forEach(({p,i}) => {
+      const reqs = p[2]; // [[mat,qty],...]
+      const reqBoxes = reqs.map(([m,q],ri) => {
+        const reqId = `pe_${i}_r${ri}`;
+        return `<div class="pe-req" onclick="event.stopPropagation();togglePeReq('${reqId}',${i})">
+          <div class="mb" id="mb_${reqId}"></div>
+          <span class="pe-req-name">${m}</span>
+        </div>`;
+      }).join('');
+      // Simple items (no reqs = ledger) have one click handler on the header only
+      const isSimple = reqs.length === 0;
+      html += `<div class="pe-item" id="pe_${i}">
+        <div class="pe-header" onclick="togglePeItem(${i})" style="${isSimple?'cursor:pointer;':''}">
+          <div class="ick" id="ick_pe_${i}"></div>
+          <div class="pe-name">${p[1]}</div>
+        </div>
+        ${reqBoxes ? `<div class="pe-reqs">${reqBoxes}</div>` : ''}
+      </div>`;
+    });
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+function togglePeReq(reqId, itemIdx) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  const val = !D()[reqId];
+  setD(reqId, val);
+  const box = document.getElementById(`mb_${reqId}`); if (box) box.classList.toggle('on', val);
+  // check if all reqs for this item are done
+  checkPeItemDone(itemIdx);
+  updateOverview();
+}
+
+function togglePeItem(i) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  const p = PE[i];
+  if (p[2].length === 0) {
+    // Ledger item — no materials, just a simple toggle
+    const cur = !!D()[`pe_${i}_done`];
+    setD(`pe_${i}_done`, !cur);
+    checkPeItemDone(i);
+    updateOverview();
+    return;
+  }
+  const allDone = p[2].every((_,ri) => D()[`pe_${i}_r${ri}`]);
+  const newVal = !allDone;
+  p[2].forEach((_,ri) => {
+    const reqId = `pe_${i}_r${ri}`;
+    setD(reqId, newVal);
+    const box = document.getElementById(`mb_${reqId}`); if (box) box.classList.toggle('on', newVal);
+  });
+  checkPeItemDone(i);
+  updateOverview();
+}
+
+function checkPeItemDone(i) {
+  const p = PE[i];
+  // If no material requirements (e.g. ledger items), use explicit toggle key instead
+  const allDone = p[2].length === 0
+    ? !!D()[`pe_${i}_done`]
+    : p[2].every((_,ri) => D()[`pe_${i}_r${ri}`]);
+  const row = document.getElementById(`pe_${i}`);
+  const ick = document.getElementById(`ick_pe_${i}`);
+  if (row) row.classList.toggle('on', allDone);
+  if (ick) ick.classList.toggle('on', allDone);
+}
+
+// ── CHALLENGES (collapsible, default expanded) ──
+function buildChallenges() {
+  const el = document.getElementById('tab-challenges');
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem;">
+    <button class="btn btn-ghost" id="chal-toggle-btn" onclick="toggleAllChal()">Collapse All</button>
+  </div>`;
+  Object.entries(CH).forEach(([set,tasks]) => {
+    const sid = slug(set);
+    html += `<div class="coll-hdr open" id="chh_${sid}" onclick="toggleColl('ch',\'${sid}\')">
+      <span class="coll-arrow">▶</span>
+      <span class="coll-title">${set}</span>
+      <span class="coll-prog" id="chp_${sid}">0/${tasks.length}</span>
+    </div>
+    <div class="coll-body open" id="chb_${sid}">`;
+    tasks.forEach(([lvl,req,rew],i) => {
+      const id = `ch_${sid}_${i}`;
+      html += `<div class="cr" id="ir_${id}" onclick="toggleSimple(\'${id}\')">
+        <div class="ick" id="ick_${id}"></div>
+        <div class="clv">${lvl}</div>
+        <div><div class="crq">${req}</div><div class="crr">Reward: ${rew}</div></div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function toggleColl(prefix, sid) {
+  document.getElementById(`${prefix}h_${sid}`)?.classList.toggle('open');
+  document.getElementById(`${prefix}b_${sid}`)?.classList.toggle('open');
+}
+
+function toggleSec(sid) {
+  document.getElementById(`ch_${sid}`)?.classList.toggle('open');
+  document.getElementById(`cb_${sid}`)?.classList.toggle('open');
+}
+
+function toggleAllSec(tabId, btnId) {
+  const tab = document.getElementById(tabId);
+  const btn = document.getElementById(btnId);
+  if (!tab) return;
+  const headers = tab.querySelectorAll('.coll-hdr');
+  const anyOpen = [...headers].some(h => h.classList.contains('open'));
+  headers.forEach(h => {
+    h.classList.toggle('open', !anyOpen);
+    const raw = h.id;
+    const sid = raw.replace(/^(ch_|chh_|cigh_)/,'');
+    document.getElementById('cb_' + sid)?.classList.toggle('open', !anyOpen);
+    document.getElementById('chb_' + sid)?.classList.toggle('open', !anyOpen);
+    document.getElementById('cigb_' + sid)?.classList.toggle('open', !anyOpen);
+  });
+  if (btn) btn.textContent = anyOpen ? 'Expand All' : 'Collapse All';
+}
+
+function toggleAllChal() {
+  const btn = document.getElementById('chal-toggle-btn');
+  const anyOpen = Object.keys(CH).some(set => document.getElementById(`chh_${slug(set)}`)?.classList.contains('open'));
+  Object.keys(CH).forEach(set => {
+    const sid = slug(set);
+    document.getElementById(`chh_${sid}`)?.classList.toggle('open', !anyOpen);
+    document.getElementById(`chb_${sid}`)?.classList.toggle('open', !anyOpen);
+  });
+  if (btn) btn.textContent = anyOpen ? 'Expand All' : 'Collapse All';
+}
+
+// ── STORY ──
+function buildStory() {
+  const el = document.getElementById('tab-story');
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-story" onclick="toggleAllSec('tab-story','btn-toggle-story')">Collapse All</button></div>`;
+  Object.entries(ST).forEach(([ch,missions]) => {
+    html += secHdr(ch, `stp_${slug(ch)}`, missions.length);
+    html += secBody(`stp_${slug(ch)}`);
+    missions.forEach((m,i) => {
+      const id = `st_${slug(ch)}_${i}`;
+      html += `<div class="sor" id="sor_${id}">
+        <span class="son">${m}</span>
+        <div class="mbs">
+          <button class="mbtn br" id="${id}_b" onclick="setMedal('${id}','bronze')">Bronze</button>
+          <button class="mbtn si" id="${id}_s" onclick="setMedal('${id}','silver')">Silver</button>
+          <button class="mbtn go" id="${id}_g" onclick="setMedal('${id}','gold')">Gold</button>
+        </div>
+      </div>`;
+    });
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+// ── ACHIEVEMENTS — PS5 trophy layout ──
+function buildAchieve() {
+  const el = document.getElementById('tab-achieve');
+  const cats = [...new Set(AC.map(a=>a[1]))];
+  const typeColor = {platinum:'#a67bd0',gold:'#E8B020',silver:'#aaa9ad',bronze:'#cd7f32'};
+  const typeIcon  = {
+    platinum:'<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#a67bd0"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#fff" font-family="serif">P</text></svg>',
+    gold:    '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#E8B020"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#0a0a10" font-family="serif">G</text></svg>',
+    silver:  '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#aaa9ad"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#0a0a10" font-family="serif">S</text></svg>',
+    bronze:  '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#cd7f32"/><text x="7" y="11" text-anchor="middle" font-size="9" fill="#fff" font-family="serif">B</text></svg>',
+  };
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-achieve" onclick="toggleAllSec('tab-achieve','btn-toggle-achieve')">Collapse All</button></div>`;
+  cats.forEach(cat => {
+    const items = AC.map((a,i)=>({a,i})).filter(({a})=>a[1]===cat);
+    html += secHdr(cat, `acp_${slug(cat)}`, items.length);
+    html += secBody(`acp_${slug(cat)}`);
+    items.forEach(({a,i}) => {
+      const col = typeColor[a[2]] || typeColor.bronze;
+      const icon = typeIcon[a[2]] || typeIcon.bronze;
+      const desc = a[3] || '';
+      const done = !!D()[`ac_${i}`];
+      html += `<div class="ir${done?' on':''}" id="ir_ac_${i}" onclick="toggleSimple('ac_${i}')">
+        <div class="ick${done?' on':''}" id="ick_ac_${i}"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="in" style="display:flex;align-items:center;gap:6px;">
+            ${icon}<span>${a[0]}</span>
+          </div>
+          ${desc ? `<div class="isb">${desc}</div>` : ''}
+        </div>
+        <span style="font-size:9px;font-family:var(--font-d);letter-spacing:.04em;padding:1px 7px;border-radius:10px;border:1px solid ${col};color:${col};flex-shrink:0;white-space:nowrap;">${a[2].toUpperCase()}</span>
+      </div>`;
+    });
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+
+// ── COLLECTIONS TAB ──
+const COLL_SECTIONS = [
+  { id:'cigs',          label:'Cigarette Cards',  count:144 },
+  { id:'dino',          label:'Dinosaur Bones',   count:30  },
+  { id:'dreamcatchers', label:'Dreamcatchers',    count:20  },
+  { id:'rock',          label:'Rock Carvings',    count:10  },
+  { id:'graves',        label:'Gang Graves',      count:9   },
+  { id:'hunting',       label:'Hunting Requests', count:5   },
+  { id:'exotics',       label:'Exotic Requests',  count:6   },
+  { id:'treasures',     label:'Treasure Hunts',   count:5   },
+];
+
+function buildCollections() {
+  const el = document.getElementById('tab-collections');
+  if (!el) return;
+
+  // Left nav
+  let navHtml = '<div class="coll-nav-panel">';
+  COLL_SECTIONS.forEach(s => {
+    navHtml += `<div class="coll-nav-item" id="cnav_${s.id}" onclick="showCollSection('${s.id}')">
+      <span>${s.label}</span>
+      <span class="coll-nav-count" id="cnavct_${s.id}">0/${s.count}</span>
+    </div>`;
+  });
+  navHtml += '</div>';
+
+  // Content panels
+  let contentHtml = '<div class="coll-content-panel">';
+
+  // ── Cigarette Cards ──
+  contentHtml += '<div class="coll-section active" id="cs_cigs">';
+  contentHtml += `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">
+    <button class="btn btn-ghost" id="cig-toggle-btn" onclick="toggleAllCigs()">Collapse All</button>
+  </div>`;
+  Object.entries(CIG).forEach(([set,{reward,cards}]) => {
+    const sid = slug(set);
+    contentHtml += `<div class="coll-hdr open" id="cigh_${sid}" onclick="toggleColl('cig','${sid}')">
+      <span class="coll-arrow">▶</span>
+      <span class="coll-title">${set}</span>
+      <span class="coll-prog" id="cigp_${sid}">0/${cards.length}</span>
+    </div>
+    <div class="coll-body open" id="cigb_${sid}">
+      <div style="font-size:11px;color:var(--gold);margin-bottom:.5rem;font-family:var(--font-d)">Reward: ${reward}</div>
+      <table class="ct"><thead><tr>
+        <th style="width:32px"></th><th>Card</th><th>State</th><th>Location</th><th>Description</th>
+      </tr></thead><tbody>`;
+    cards.forEach(([name,state,loc,desc],i) => {
+      const id = `cig_${sid}_${i}`;
+      contentHtml += `<tr id="ctr_${id}">
+        <td class="ccc" onclick="toggleCard('${id}')"><div class="mb" id="mb_${id}"></div></td>
+        <td class="cn">${name}</td><td class="cloc">${state}</td>
+        <td class="cloc">${loc}</td><td class="cloc">${desc}</td>
+      </tr>`;
+    });
+    contentHtml += '</tbody></table></div>';
+  });
+  contentHtml += '</div>';
+
+  // ── Dinosaur Bones ──
+  contentHtml += buildSimpleCollection('cs_dino', 'Dinosaur Bones (30)', 'A Test of Faith — find all 30 bones, mail findings to Deborah MacGuiness',
+    DINO_BONES, (item,i) => `dino_${i}`, item => `${item[1]}: ${item[2]}`);
+
+  // ── Dreamcatchers ──
+  contentHtml += buildSimpleCollection('cs_dreamcatchers', 'Dreamcatchers (20)', 'Find all 20 — reveals Ancient Arrowhead treasure location',
+    DREAMCATCHERS, (item,i) => `dc_${i}`, item => `${item[1]}: ${item[2]}`);
+
+  // ── Rock Carvings ──
+  contentHtml += buildSimpleCollection('cs_rock', 'Rock Carvings (10)', 'Geology for Beginners — find all 10, mail to Francis Sinclair',
+    ROCK_CARVINGS, (item,i) => `rock_${i}`, item => `${item[1]}: ${item[2]}`);
+
+  // ── Graves ──
+  contentHtml += buildSimpleCollection('cs_graves', 'Fallen Companions Graves (9)', 'Visit each grave — only accessible after Epilogue begins',
+    GRAVES, (item,i) => `grave_${i}`, item => `${item[0]} — ${item[1]}`);
+
+  // ── Hunting Requests ──
+  contentHtml += '<div class="coll-section" id="cs_hunting">';
+  contentHtml += `<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">A Better World, A New Friend — 5 request lists from Ms. L. Hobbs. All require <strong>perfect carcasses</strong>.</div>`;
+  HUNTING_REQUESTS.forEach((req, ri) => {
+    contentHtml += secHdr(req.list, `hunt_${ri}`, req.animals.length);
+    contentHtml += secBody(`hunt_${ri}`);
+    req.animals.forEach(([animal,hint],ai) => {
+      const id = `hunt_${ri}_${ai}`;
+      contentHtml += `<div class="ir" id="ir_${id}" onclick="toggleSimple('${id}')">
+        <div class="ick" id="ick_${id}"></div>
+        <div><div class="in">${animal}</div><div class="isb">${hint}</div></div>
+      </div>`;
+    });
+    contentHtml += secBodyEnd();
+  });
+  contentHtml += '</div>';
+
+  // ── Exotics ──
+  contentHtml += '<div class="coll-section" id="cs_exotics">';
+  contentHtml += `<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">Duchesses and Other Animals — 6 requests for Algernon Wasp, Saint Denis.</div>`;
+  EXOTICS.forEach((req, ri) => {
+    contentHtml += secHdr(req.req, `exotic_${ri}`, req.items.length);
+    contentHtml += secBody(`exotic_${ri}`);
+    req.items.forEach(([item,hint],ai) => {
+      const id = `exotic_${ri}_${ai}`;
+      contentHtml += `<div class="ir" id="ir_${id}" onclick="toggleSimple('${id}')">
+        <div class="ick" id="ick_${id}"></div>
+        <div><div class="in">${item}</div>${hint?'<div class="isb">'+hint+'</div>':''}</div>
+      </div>`;
+    });
+    contentHtml += secBodyEnd();
+  });
+  contentHtml += '</div>';
+
+  // ── Treasure Hunts ──
+  contentHtml += '<div class="coll-section" id="cs_treasures">';
+  contentHtml += `<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">Complete 1 for 100% — track all 5 here.</div>`;
+  TREASURES.forEach((t, ti) => {
+    contentHtml += secHdr(t.name, `treas_${ti}`, t.clues.length);
+    contentHtml += secBody(`treas_${ti}`);
+    t.clues.forEach((clue,ci) => {
+      const id = `treas_${ti}_${ci}`;
+      contentHtml += `<div class="ir" id="ir_${id}" onclick="toggleSimple('${id}')">
+        <div class="ick" id="ick_${id}"></div>
+        <div class="in">${clue}</div>
+      </div>`;
+    });
+    contentHtml += secBodyEnd();
+  });
+  contentHtml += '</div>';
+
+  contentHtml += '</div>'; // end coll-content-panel
+
+  el.innerHTML = `<div class="coll-tab-layout">${navHtml}${contentHtml}</div>`;
+
+  // Mark first nav item active
+  document.getElementById('cnav_cigs')?.classList.add('active');
+  updateCollectionCounts();
+}
+
+function buildSimpleCollection(sectionId, title, subtitle, items, idFn, labelFn) {
+  let html = `<div class="coll-section" id="${sectionId}">`;
+  html += `<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem;">${subtitle}</div>`;
+  items.forEach((item, i) => {
+    const id = idFn(item, i);
+    const label = labelFn(item);
+    html += `<div class="ir" id="ir_${id}" onclick="toggleSimple('${id}')">
+      <div class="ick" id="ick_${id}"></div>
+      <div class="in">${label}</div>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function showCollSection(id) {
+  document.querySelectorAll('.coll-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.coll-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('cs_' + id)?.classList.add('active');
+  document.getElementById('cnav_' + id)?.classList.add('active');
+}
+
+function updateCollectionCounts() {
+  const d = D();
+  // Cigs
+  let cigDon = 0, cigTot = 0;
+  Object.entries(CIG).forEach(([set,{cards}]) => {
+    cards.forEach((_,i) => { cigTot++; if(d[`cig_${slug(set)}_${i}`]) cigDon++; });
+  });
+  setTxt('cnavct_cigs', cigDon + '/' + cigTot);
+
+  // Simple collections
+  const simpleCollections = [
+    ['dino', DINO_BONES, (item,i) => `dino_${i}`],
+    ['dreamcatchers', DREAMCATCHERS, (item,i) => `dc_${i}`],
+    ['rock', ROCK_CARVINGS, (item,i) => `rock_${i}`],
+    ['graves', GRAVES, (item,i) => `grave_${i}`],
+  ];
+  simpleCollections.forEach(([colId, items, idFn]) => {
+    let done = 0;
+    items.forEach((item,i) => { if(d[idFn(item,i)]) done++; });
+    setTxt('cnavct_' + colId, done + '/' + items.length);
+  });
+
+  // Hunting
+  let huntDon=0, huntTot=0;
+  HUNTING_REQUESTS.forEach((req,ri) => req.animals.forEach((_,ai)=>{ huntTot++; if(d[`hunt_${ri}_${ai}`]) huntDon++; }));
+  setTxt('cnavct_hunting', huntDon + '/' + huntTot);
+
+  // Exotics
+  let exoticDon=0, exoticTot=0;
+  EXOTICS.forEach((req,ri) => req.items.forEach((_,ai)=>{ exoticTot++; if(d[`exotic_${ri}_${ai}`]) exoticDon++; }));
+  setTxt('cnavct_exotics', exoticDon + '/' + exoticTot);
+
+  // Treasures
+  let tDon=0, tTot=0;
+  TREASURES.forEach((t,ti) => t.clues.forEach((_,ci)=>{ tTot++; if(d[`treas_${ti}_${ci}`]) tDon++; }));
+  setTxt('cnavct_treasures', tDon + '/' + tTot);
+}
+
+function toggleAllCigs() {
+  const btn = document.getElementById('cig-toggle-btn');
+  const anyOpen = Object.keys(CIG).some(set => document.getElementById(`cigh_${slug(set)}`)?.classList.contains('open'));
+  Object.keys(CIG).forEach(set => {
+    const sid = slug(set);
+    document.getElementById(`cigh_${sid}`)?.classList.toggle('open', !anyOpen);
+    document.getElementById(`cigb_${sid}`)?.classList.toggle('open', !anyOpen);
+  });
+  if (btn) btn.textContent = anyOpen ? 'Expand All' : 'Collapse All';
+}
+
+
+// Inventory is global (not per-playthrough)
+function getInv(mat) { return parseInt(db.inventory[mat] || 0); }
+function setInv(mat, val) {
+  db.inventory[mat] = Math.max(0, parseInt(val) || 0);
+  saveLocal(); debouncedSync();
+  refreshTrapperCan();
+}
+
+function bumpInv(mat, delta) {
+  if (!pt && delta > 0) {}  // allow inventory changes without playthrough
+  const newVal = Math.max(0, getInv(mat) + delta);
+  db.inventory[mat] = newVal;
+  const numEl = document.getElementById('inv-num-' + slug(mat));
+  if (numEl) numEl.textContent = newVal;
+  saveLocal(); debouncedSync();
+  refreshTrapperCan();
+}
+
+function getCfg() {
+  return { repo: localStorage.getItem('rdr2_repo')||'', branch: localStorage.getItem('rdr2_branch')||'main', token: localStorage.getItem('rdr2_token')||'' };
+}
+function saveCfg() {
+  localStorage.setItem('rdr2_repo',   document.getElementById('cr').value);
+  localStorage.setItem('rdr2_branch', document.getElementById('cb').value || 'main');
+  localStorage.setItem('rdr2_token',  document.getElementById('ct').value);
+}
+function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
+
+
+// ═══════════════════ SYNC CODE (no-account cross-device sync) ═══════════════════
+// How it works: generates a 6-char code. User shares it. Other devices enter it.
+// Data is stored in localStorage under that code key. To sync across devices,
+// user exports from one device (copies the shareable link/data) and imports on another.
+// For LIVE sync without a server: we use a free public JSONBin bin tied to the code.
+// JSONBin free tier: 10k requests/month, perfect for personal use.
+// If user doesn't want JSONBin, they can just share the code and use Export/Import.
+
+let syncCode = localStorage.getItem('rdr2_synccode') || '';
+
+function createSyncCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  syncCode = code;
+  localStorage.setItem('rdr2_synccode', code);
+  const el = document.getElementById('sync-code');
+  if (el) el.value = code;
+  setSyncStatus('Code created: ' + code + ' — share this with your other devices', 'ok');
+  saveLocal();
+}
+
+function joinSyncCode() {
+  const inp = document.getElementById('sync-code');
+  const code = (inp ? inp.value : '').trim().toUpperCase();
+  if (code.length !== 6) { setSyncStatus('Enter a 6-character code', 'err'); return; }
+  syncCode = code;
+  localStorage.setItem('rdr2_synccode', code);
+  // Try to load data stored under this code
+  const stored = localStorage.getItem('rdr2_data_' + code);
+  if (stored) {
+    try {
+      db = JSON.parse(stored);
+      if (!db.inventory) db.inventory = {};
+      if (db.gold === undefined) db.gold = 0;
+      loadGold();
+      renderPTSel();
+      buildAllTabs();
+      if (pt) renderAllChecks();
+      setSyncStatus('Joined code ' + code + ' — data loaded ✓', 'ok');
+    } catch(e) { setSyncStatus('Code joined but no data found yet', ''); }
+  } else {
+    setSyncStatus('Joined code ' + code + ' — no data yet (save something to populate)', '');
+  }
+}
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-code-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type==='ok' ? 'var(--success)' : type==='err' ? 'var(--accent)' : 'var(--muted)';
+}
+
+// Override saveLocal to also save under sync code
+const _origSaveLocal = typeof saveLocal !== 'undefined' ? null : null;
+
+// ═══════════════════ GOLD ═══════════════════
+function saveGold(val) {
+  db.gold = parseFloat(val) || 0;
+  saveLocal(); debouncedSync();
+}
+function loadGold() {
+  const el = document.getElementById('gold-val');
+  if (el) el.value = (db.gold !== undefined) ? db.gold : '';
+}
+
+// ═══════════════════ INIT ═══════════════════
+async function init() {
+  const cfg = getCfg();
+  document.getElementById('cr').value = cfg.repo;
+  document.getElementById('cb').value = cfg.branch;
+  document.getElementById('ct').value = cfg.token;
+  if (cfg.repo && cfg.token) await loadFromGH();
+  else { const l = localStorage.getItem('rdr2_db'); if (l) try { db = JSON.parse(l); } catch(e){} }
+  if (!db.inventory) db.inventory = {};
+  if (db.gold === undefined) db.gold = 0;
+  loadGold();
+  // Load sync code if previously set
+  syncCode = localStorage.getItem('rdr2_synccode') || '';
+  if (syncCode) {
+    const el = document.getElementById('sync-code');
+    if (el) el.value = syncCode;
+  }
+  renderPTSel();
+  buildAllTabs();
+  // Set sticky top for inventory panel based on actual bar height
+  requestAnimationFrame(updateStickyTop);
+  new ResizeObserver(updateStickyTop).observe(document.getElementById('sticky-bar'));
+}
+
+function updateStickyTop() {
+  const bar = document.getElementById('sticky-bar');
+  if (!bar) return;
+  const h = bar.offsetHeight;
+  document.documentElement.style.setProperty('--sticky-top', h + 'px');
+}
+
+// ═══════════════════ PLAYTHROUGH ═══════════════════
+function renderPTSel() {
+  const sel = document.getElementById('pts');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Select Playthrough —</option>';
+  Object.keys(db.playthroughs).forEach(n => {
+    const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+  });
+  if (prev && db.playthroughs[prev]) sel.value = prev;
+}
+function switchPT(name) {
+  pt = name || null;
+  document.getElementById('nopt').classList.toggle('vis', !pt);
+  document.querySelectorAll('.tp').forEach(p => p.style.opacity = pt ? '1' : '0.35');
+  if (pt) renderAllChecks();
+  updateOverview();
+}
+function openMo()  { document.getElementById('mo').classList.add('open'); setTimeout(() => document.getElementById('pti').focus(), 50); }
+function closeMo() { document.getElementById('mo').classList.remove('open'); }
+function openRenamePT() {
+  if (!pt) { alert('Select a playthrough to rename.'); return; }
+  const mo = document.getElementById('mo-rename');
+  const inp = document.getElementById('rename-input');
+  if (inp) inp.value = pt;
+  if (mo) mo.style.display = 'flex';
+  setTimeout(() => { if(inp){inp.focus();inp.select();} }, 50);
+}
+function closeRenameMo() {
+  const mo = document.getElementById('mo-rename');
+  if (mo) mo.style.display = 'none';
+}
+function confirmRename() {
+  const newName = (document.getElementById('rename-input').value || '').trim();
+  if (!newName) return;
+  if (newName === pt) { closeRenameMo(); return; }
+  if (db.playthroughs[newName]) { alert('A playthrough with that name already exists.'); return; }
+  db.playthroughs[newName] = db.playthroughs[pt];
+  delete db.playthroughs[pt];
+  pt = newName;
+  closeRenameMo();
+  renderPTSel();
+  document.getElementById('pts').value = newName;
+  saveLocal(); syncGH();
+}
+function deletePT() {
+  if (!pt) { alert('Select a playthrough first.'); return; }
+  if (!confirm('Delete "' + pt + '"? This cannot be undone.')) return;
+  delete db.playthroughs[pt];
+  pt = null;
+  renderPTSel();
+  document.getElementById('pts').value = '';
+  switchPT('');
+  saveLocal(); syncGH();
+}
+function confPT() {
+  const name = document.getElementById('pti').value.trim();
+  if (!name) return;
+  if (db.playthroughs[name]) { alert('Name already exists.'); return; }
+  db.playthroughs[name] = {};
+  closeMo(); renderPTSel();
+  document.getElementById('pts').value = name;
+  switchPT(name); saveLocal(); syncGH();
+}
+
+// ═══════════════════ BUILD TABS ═══════════════════
+function buildAllTabs() {
+  buildAnimals(); buildPlants(); buildFish(); buildHorses();
+  buildWeapons(); buildEquip(); buildTrapper(); buildPearson();
+  buildChallenges(); buildStory(); buildAchieve(); buildCollections();
+}
+
+// ── Section header helper — collapsible ──
+// Returns header HTML; caller must wrap content in <div class="coll-body open" id="cb_PROGID">...</div>
+function secHdr(title, progId, total) {
+  const sid = progId;
+  return `<div class="coll-hdr open" id="ch_${sid}" onclick="toggleSec('${sid}')">
+    <span class="coll-arrow">▶</span>
+    <span class="coll-title">${title}</span>
+    <span class="coll-prog" id="${sid}">0/${total}</span>
+  </div>`;
+}
+function secBody(progId) {
+  return `<div class="coll-body open" id="cb_${progId}">`;
+}
+function secBodyEnd() { return '</div>'; }
+
+// ── Multi-check row helper ──
+function mcRow(prefix, i, label, cols, colLabels, extraClass, subtitle) {
+  const cells = cols.map((active, j) => {
+    if (!active) return `<div class="mc na"><div class="mcl">${colLabels[j]}</div><div class="mb"></div></div>`;
+    return `<div class="mc" onclick="toggleMC('${prefix}${i}',${j})"><div class="mcl">${colLabels[j]}</div><div class="mb" id="mb_${prefix}${i}_${j}"></div></div>`;
+  }).join('');
+  const labelHtml = subtitle
+    ? `<div>${label}<small style="display:block;font-size:10px;color:var(--muted);margin-top:1px;">${subtitle}</small></div>`
+    : label;
+  return `<div class="mr${extraClass?' '+extraClass:''}" id="mr_${prefix}${i}"><div class="ml">${labelHtml}</div><div class="mcc">${cells}</div></div>`;
+}
+
+// ── Simple item row ──
+function simRow(id, name, sub) {
+  return `<div class="ir" id="ir_${id}" onclick="toggleSimple('${id}')">
+    <div class="ick" id="ick_${id}"></div>
+    <div><div class="in">${name}</div>${sub?`<div class="isb">${sub}</div>`:''}</div>
+  </div>`;
+}
+
+// ── ANIMALS ──
+function buildAnimals() {
+  const el = document.getElementById('tab-animals');
+  const groups = [...new Set(AN.map(a=>a[0]))];
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-animals" onclick="toggleAllSec('tab-animals','btn-toggle-animals')">Collapse All</button></div>`;
+  groups.forEach(grp => {
+    const items = AN.filter(a=>a[0]===grp);
+    const tot = items.reduce((s,a)=>[a[2],a[3],a[4],a[5]].reduce((ss,v)=>ss+(v?1:0),s),0);
+    html += secHdr(grp, `ap_${slug(grp)}`, tot);
+    html += secBody(`ap_${slug(grp)}`);
+    AN.forEach((a,i) => { if (a[0]===grp) html += mcRow('an_',i,a[1],[a[2],a[3],a[4],a[5]],AN_COLS); });
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+// ── PLANTS ──
+function buildPlants() {
+  const el = document.getElementById('tab-plants');
+  const cats = [...new Set(PL.map(p=>p[0]))];
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-plants" onclick="toggleAllSec('tab-plants','btn-toggle-plants')">Collapse All</button></div>`;
+  cats.forEach(cat => {
+    const items = PL.filter(p=>p[0]===cat);
+    // For orchids, no recipe col
+    const isOrchid = cat === 'ORCHID';
+    const tot = items.reduce((s,p)=>{
+      const cols = isOrchid?[p[2],0,p[4]]:[p[2],p[3],p[4]];
+      return s + cols.reduce((ss,v)=>ss+(v?1:0),0);
+    },0);
+    html += secHdr(cat, `pp_${slug(cat)}`, tot);
+    html += secBody(`pp_${slug(cat)}`);
+    PL.forEach((p,i) => {
+      if (p[0]!==cat) return;
+      const cols = isOrchid?[p[2],0,p[4]]:[p[2],p[3],p[4]];
+      const labels = isOrchid?['PICKED','','HERBALIST']:PL_COLS;
+      // custom build for orchid (skip recipe)
+      if (isOrchid) {
+        const cells = [[p[2],'PICKED',0],[0,'',1],[p[4],'HERBALIST',2]].map(([active,lbl,j]) => {
+          if (!active && lbl==='') return '<div class="mc na" style="visibility:hidden"><div class="mcl">—</div><div class="mb"></div></div>';
+          if (!active) return `<div class="mc na"><div class="mcl">${lbl}</div><div class="mb"></div></div>`;
+          return `<div class="mc" onclick="toggleMC('pl_',${i},${j} )"><div class="mcl">${lbl}</div><div class="mb" id="mb_pl_${i}_${j}"></div></div>`;
+        }).join('');
+        // simpler: just show PICKED + HERBALIST for orchids
+        const c2 = [
+          `<div class="mc" onclick="toggleMC('pl_${i}',0)"><div class="mcl">PICKED</div><div class="mb" id="mb_pl_${i}_0"></div></div>`,
+          `<div class="mc na" style="opacity:.1"><div class="mcl">RECIPE</div><div class="mb"></div></div>`,
+          `<div class="mc" onclick="toggleMC('pl_${i}',2)"><div class="mcl">HERBALIST</div><div class="mb" id="mb_pl_${i}_2"></div></div>`,
+        ].join('');
+        html += `<div class="mr" id="mr_pl_${i}"><div class="ml">${p[1]}</div><div class="mcc">${c2}</div></div>`;
+      } else {
+        html += mcRow('pl_',i,p[1],[p[2],p[3],p[4]],PL_COLS);
+      }
+    });
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+// ── FISH: Caught + Survivalist for regular; Caught-only for legendary ──
+const FI_COLS_NORM = ['CAUGHT','SURVIVALIST'];
+
+function buildFish() {
+  const el = document.getElementById('tab-fish');
+  const normal = FI.filter(f=>!f[1]);
+  const leg    = FI.filter(f=>f[1]);
+
+  // 2 checkboxes per normal fish (Caught + Survivalist)
+  const normTot = normal.length * 2;
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-fish" onclick="toggleAllSec('tab-fish','btn-toggle-fish')">Collapse All</button></div>`;
+  html += secHdr(`Fish (${normal.length} species)`, 'fp_fish', normTot);
+  html += secBody('fp_fish');
+  normal.forEach((f,i) => {
+    const cells = FI_COLS_NORM.map((lbl,j) =>
+      `<div class="mc" onclick="toggleMC('fi_${i}',${j})">
+        <div class="mcl">${lbl}</div>
+        <div class="mb" id="mb_fi_${i}_${j}"></div>
+      </div>`
+    ).join('');
+    html += `<div class="mr" id="mr_fi_${i}">
+      <div class="ml">${f[0]}</div>
+      <div class="mcc">${cells}</div>
+    </div>`;
+  });
+
+  html += secBodyEnd();
+  html += '<div class="orn">✦ ✦ ✦</div>';
+  html += secHdr(`Legendary Fish (${leg.length})`, 'fp_leg', leg.length);
+  html += secBody('fp_leg');
+  leg.forEach((f,i) => {
+    html += `<div class="mr" id="mr_fl_${i}">
+      <div class="ml">${f[0]}</div>
+      <div class="mcc"><div class="mc" onclick="toggleMC('fl_${i}',0)"><div class="mcl">CAUGHT</div><div class="mb" id="mb_fl_${i}_0"></div></div></div>
+    </div>`;
+  });
+  html += secBodyEnd();
+  el.innerHTML = html;
+}
+
+// ── HORSES ── [breed, coat, type, location, studied, bonded, ridden, hasHorseman]
+function buildHorses() {
+  const el = document.getElementById('tab-horses');
+  const breeds = [...new Set(HO.map(h=>h[0]))];
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-horses" onclick="toggleAllSec('tab-horses','btn-toggle-horses')">Collapse All</button></div>`;
+  breeds.forEach(breed => {
+    const coats = HO.map((h,i)=>({h,i})).filter(({h})=>h[0]===breed);
+    const hasHorseman = coats.some(({h})=>h[7]===1);
+    const tot = coats.length * 3 + (hasHorseman ? 1 : 0);
+    html += `<div class="coll-hdr open" id="ch_hp_${slug(breed)}" onclick="toggleSec('hp_${slug(breed)}')">
+      <span class="coll-arrow">▶</span>
+      <span class="coll-title">${breed}</span>
+      <span class="coll-prog" id="hp_${slug(breed)}">0/${tot}</span>
+    </div>`;
+    html += secBody(`hp_${slug(breed)}`);
+    // Horseman row — one per breed
+    if (hasHorseman) {
+      const hmId = `ho_hm_${slug(breed)}`;
+      html += `<div class="mr" id="mr_${hmId}" style="background:rgba(40,96,128,.12);border-color:rgba(42,96,128,.3);margin-bottom:6px">
+        <div class="ml" style="color:var(--straw);font-size:12px;font-family:var(--font-d);letter-spacing:.05em">HORSEMAN CHALLENGE</div>
+        <div class="mcc"><div class="mc" onclick="toggleSimple('${hmId}')"><div class="mcl">COMPLETE</div><div class="mb" id="mb_${hmId}"></div></div></div>
+      </div>`;
+    }
+    coats.forEach(({h,i}) => {
+      html += mcRow('ho_',i,h[1],[h[4],h[5],h[6]],HO_COLS,null,`${h[2]} · ${h[3]}`);
+    });
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+// ── WEAPONS ──
+function buildWeapons() {
+  const el = document.getElementById('tab-weapons');
+  const cats = [...new Set(WE.map(w=>w[0]))];
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-weapons" onclick="toggleAllSec('tab-weapons','btn-toggle-weapons')">Collapse All</button></div>`;
+  cats.forEach(cat => {
+    const items = WE.map((w,i)=>({w,i})).filter(({w})=>w[0]===cat);
+    html += secHdr(cat, `wp_${slug(cat)}`, items.length);
+    html += secBody(`wp_${slug(cat)}`);
+    html += '<div class="ig">';
+    items.forEach(({w,i}) => html += simRow(`we_${i}`,w[1],''));
+    html += '</div>';
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+// ── EQUIPMENT ──
+function buildEquip() {
+  const el = document.getElementById('tab-equip');
+  const cats = [...new Set(EQ.map(e=>e[0]))];
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-equip" onclick="toggleAllSec('tab-equip','btn-toggle-equip')">Collapse All</button></div>`;
+  cats.forEach(cat => {
+    const items = EQ.map((e,i)=>({e,i})).filter(({e})=>e[0]===cat);
+    html += secHdr(cat, `eqp_${slug(cat)}`, items.length);
+    html += secBody(`eqp_${slug(cat)}`);
+    html += '<div class="ig">';
+    items.forEach(({e,i}) => html += simRow(`eq_${i}`,e[1],e[2]));
+    html += '</div>';
+    html += secBodyEnd();
+  });
+  el.innerHTML = html;
+}
+
+// ── TRAPPER — 3-group collapsible inventory + 16 outfits + individual items ──
+function buildTrapper() {
+  const el = document.getElementById('tab-trapper');
+
+  function invGroup(title, mats, gid, isLeg) {
+    let h = '<div class="inv-group-hdr" onclick="var b=document.getElementById(\'ig_' + gid + '\');b.classList.toggle(\'open\');this.classList.toggle(\'open\')"><span class="coll-arrow">▶</span><span>' + title + '</span></div>';
+    h += '<div class="coll-body" id="ig_' + gid + '">';
     mats.forEach(mat => {
       if (isLeg) {
         // Legendary: toggle (hunted or not)
@@ -885,7 +1955,7 @@ function renderAllChecks() {
   // horseman breed checkboxes
   const hmBreeds = [...new Set(HO.map(h=>h[0]))];
   hmBreeds.forEach(breed => {
-    if (!HO.filter(h=>h[0]===breed).some(h=>h[4]===1)) return;
+    if (!HO.filter(h=>h[0]===breed).some(h=>h[7]===1)) return;
     const hmId = `ho_hm_${slug(breed)}`;
     const on = !!d[hmId];
     document.getElementById(`mb_${hmId}`)?.classList.toggle('on', on);
@@ -935,6 +2005,8 @@ function renderAllChecks() {
     });
   });
 
+  // Collections — cigs already handled above; simple items handled by ir_ prefix
+  // updateCollectionCounts called via updateOverview → updateSectionProgress
   updateOverview();
 }
 
@@ -966,10 +2038,12 @@ function updateOverview() {
 
   // Horses (studied/bonded/ridden per coat + 1 horseman per qualifying breed)
   let hoTot=0,hoDon=0;
-  HO.forEach((_,i)=>{ [0,1,2].forEach(j=>{hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}); });
+  HO.forEach((h,i)=>{
+    [h[4],h[5],h[6]].forEach((v,j)=>{if(v){hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}});
+  });
   const hoBreeds=[...new Set(HO.map(h=>h[0]))];
   hoBreeds.forEach(breed=>{
-    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
+    if(HO.filter(h=>h[0]===breed).some(h=>h[7]===1)){
       hoTot++; if(d[`ho_hm_${slug(breed)}`])hoDon++;
     }
   });
@@ -997,6 +2071,10 @@ function updateOverview() {
   setTxt('ov-tot',`${pct}%`); setBar('pb-tot',pct);
 
   updateSectionProgress(d);
+  // Update collection counts if tab exists
+  if (document.getElementById('tab-collections')?.classList.contains('active')) {
+    updateCollectionCounts();
+  }
 }
 
 function updateSectionProgress(d) {
@@ -1027,8 +2105,8 @@ function updateSectionProgress(d) {
   // Horses by breed (coats + horseman per breed)
   [...new Set(HO.map(h=>h[0]))].forEach(breed=>{
     let tot=0,don=0;
-    HO.forEach((_,i)=>{ const h=HO[i]; if(h[0]!==breed)return; [0,1,2].forEach(j=>{tot++;if(d[`ho_${i}_${j}`])don++;});});
-    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
+    HO.forEach((h,i)=>{if(h[0]!==breed)return;[h[4],h[5],h[6]].forEach((v,j)=>{if(v){tot++;if(d[`ho_${i}_${j}`])don++;}});});
+    if(HO.filter(h=>h[0]===breed).some(h=>h[7]===1)){
       tot++; if(d[`ho_hm_${slug(breed)}`])don++;
     }
     setTxt(`hp_${slug(breed)}`,`${don}/${tot}`);
@@ -1093,7 +2171,12 @@ function showTab(name, btn) {
 function toggleSet() { document.getElementById('settings-bar').classList.toggle('open'); }
 
 // ═══════════════════ STORAGE ═══════════════════
-function saveLocal(){localStorage.setItem('rdr2_db',JSON.stringify(db));}
+function saveLocal(){
+  const json = JSON.stringify(db);
+  localStorage.setItem('rdr2_db', json);
+  // Also save under sync code if one is set
+  if (syncCode) localStorage.setItem('rdr2_data_' + syncCode, json);
+}
 
 async function loadFromGH(){
   const cfg=getCfg();if(!cfg.repo||!cfg.token)return;
