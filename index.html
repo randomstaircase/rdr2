@@ -166,6 +166,19 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   border-bottom:1px solid var(--border2);margin-bottom:3px;}
 .inv-group-hdr .coll-arrow{font-size:9px;transition:transform .2s;}
 .inv-group-hdr.open .coll-arrow{transform:rotate(90deg);}
+/* COLLECTIONS TAB */
+.coll-tab-layout{display:grid;grid-template-columns:220px 1fr;gap:1rem;align-items:start;}
+.coll-nav-panel{background:var(--panel);border:1px solid var(--border2);border-radius:6px;overflow:hidden;position:sticky;top:var(--sticky-top,180px);}
+.coll-nav-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;
+  font-family:var(--font-d);font-size:.75rem;letter-spacing:.06em;color:var(--muted);
+  border-bottom:1px solid var(--border2);transition:all .12s;user-select:none;}
+.coll-nav-item:last-child{border-bottom:none;}
+.coll-nav-item:hover{background:var(--panel2);color:var(--straw);}
+.coll-nav-item.active{background:rgba(232,176,32,.1);color:var(--straw);border-left:2px solid var(--gold);}
+.coll-nav-count{font-size:10px;color:var(--muted2);}
+.coll-content-panel{min-width:0;}
+.coll-section{display:none;}
+.coll-section.active{display:block;}
 /* TRAPPER INVENTORY */
 .trapper-layout{display:grid;grid-template-columns:280px 1fr;gap:1rem;align-items:start;}
 .inv-panel{background:var(--panel);border:1px solid var(--border2);border-radius:6px;padding:12px;position:sticky;top:var(--sticky-top,180px);max-height:calc(100vh - var(--sticky-top,180px) - 20px);overflow-y:auto;}
@@ -273,7 +286,15 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <div class="sg"><label>Repo:</label><input type="text" id="cr" placeholder="owner/rdr2-tracker" oninput="saveCfg()"/></div>
   <div class="sg"><label>Branch:</label><input type="text" id="cb" placeholder="main" style="width:70px" oninput="saveCfg()"/></div>
   <div class="sg"><label>Token:</label><input type="password" id="ct" placeholder="ghp_..." oninput="saveCfg()"/></div>
-  <button class="btn btn-gold" onclick="syncGH()">Sync Now</button>
+  <button class="btn btn-gold" onclick="syncGH()">GitHub Sync</button>
+  <span id="ls" style="font-size:12px;color:var(--muted)"></span>
+  <div class="sg" style="border-left:1px solid var(--border2);padding-left:.8rem;margin-left:.2rem;gap:.4rem;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:10px;color:var(--muted);font-family:var(--font-d);letter-spacing:.05em;white-space:nowrap;">SYNC CODE</span>
+    <input type="text" id="sync-code" placeholder="ABC123" style="width:80px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+    <button class="btn btn-ghost" onclick="joinSyncCode()" style="font-size:9px;padding:4px 8px;">Join</button>
+    <button class="btn btn-ghost" onclick="createSyncCode()" style="font-size:9px;padding:4px 8px;">New</button>
+    <span id="sync-code-status" style="font-size:11px;color:var(--muted);"></span>
+  </div>
   <div class="sg" style="border-left:1px solid var(--border2);padding-left:.8rem;gap:.5rem;">
     <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
     <label class="btn btn-ghost" style="cursor:pointer">↑ Import CSV<input type="file" accept=".csv" style="display:none" onchange="importCSV(event)"/></label>
@@ -282,7 +303,6 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
     <button class="btn btn-ghost" onclick="openRenamePT()">✎ Rename</button>
     <button class="btn btn-ghost" style="border-color:var(--accent);color:var(--accent);" onclick="deletePT()">✕ Delete</button>
   </div>
-  <span id="ls" style="font-size:12px;color:var(--muted)"></span>
 </div>
 <div id="overview">
   <div class="sc"><div class="sl">Animals</div><div class="sv" id="ov-an">0/—</div><div class="pbw"><div class="pbf" id="pb-an" style="width:0%"></div></div></div>
@@ -307,7 +327,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <button class="tb" onclick="showTab('challenges',this)">Challenges</button>
   <button class="tb" onclick="showTab('story',this)">Story</button>
   <button class="tb" onclick="showTab('achieve',this)">Achievements</button>
-  <button class="tb" onclick="showTab('cigs',this)">Cig. Cards</button>
+  <button class="tb" onclick="showTab('collections',this)">Collections</button>
 </div>
 </div><!-- end sticky-bar -->
 <main>
@@ -323,7 +343,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <div id="tab-challenges" class="tp"></div>
   <div id="tab-story"      class="tp"></div>
   <div id="tab-achieve"    class="tp"></div>
-  <div id="tab-cigs"       class="tp"></div>
+  <div id="tab-collections" class="tp"></div>
 </main>
 <div id="mo-rename" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:201;align-items:center;justify-content:center;">
   <div style="background:var(--panel);border:1px solid var(--gold);border-radius:6px;padding:1.75rem;width:360px;max-width:90vw;">
