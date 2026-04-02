@@ -278,14 +278,18 @@ function buildFish() {
   el.innerHTML = html;
 }
 
-// ── HORSES ── [breed, coat, type, location, studied, bonded, ridden, hasHorseman]
+// ── HORSES ──
+// HO: [breed, coat, type, location, hasHorseman]
 function buildHorses() {
   const el = document.getElementById('tab-horses');
   const breeds = [...new Set(HO.map(h=>h[0]))];
-  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;"><button class="btn btn-ghost" id="btn-toggle-horses" onclick="toggleAllSec('tab-horses','btn-toggle-horses')">Collapse All</button></div>`;
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">
+    <button class="btn btn-ghost" id="btn-toggle-horses" onclick="toggleAllSec('tab-horses','btn-toggle-horses')">Collapse All</button>
+  </div>`;
   breeds.forEach(breed => {
     const coats = HO.map((h,i)=>({h,i})).filter(({h})=>h[0]===breed);
-    const hasHorseman = coats.some(({h})=>h[7]===1);
+    const hasHorseman = coats.some(({h})=>h[4]===1);
+    // 3 checkboxes per coat + 1 horseman row per qualifying breed
     const tot = coats.length * 3 + (hasHorseman ? 1 : 0);
     html += `<div class="coll-hdr open" id="ch_hp_${slug(breed)}" onclick="toggleSec('hp_${slug(breed)}')">
       <span class="coll-arrow">▶</span>
@@ -293,7 +297,7 @@ function buildHorses() {
       <span class="coll-prog" id="hp_${slug(breed)}">0/${tot}</span>
     </div>`;
     html += secBody(`hp_${slug(breed)}`);
-    // Horseman row — one per breed
+    // Horseman challenge row — one per qualifying breed
     if (hasHorseman) {
       const hmId = `ho_hm_${slug(breed)}`;
       html += `<div class="mr" id="mr_${hmId}" style="background:rgba(40,96,128,.12);border-color:rgba(42,96,128,.3);margin-bottom:6px">
@@ -301,8 +305,10 @@ function buildHorses() {
         <div class="mcc"><div class="mc" onclick="toggleSimple('${hmId}')"><div class="mcl">COMPLETE</div><div class="mb" id="mb_${hmId}"></div></div></div>
       </div>`;
     }
+    // Each coat — show type and location as subtitle, all 3 cols active
     coats.forEach(({h,i}) => {
-      html += mcRow('ho_',i,h[1],[h[4],h[5],h[6]],HO_COLS,null,`${h[2]} · ${h[3]}`);
+      const sub = `${h[2]} · ${h[3]}`;
+      html += mcRow('ho_',i,h[1],[1,1,1],HO_COLS,null,sub);
     });
     html += secBodyEnd();
   });
@@ -879,7 +885,7 @@ function renderAllChecks() {
   // horseman breed checkboxes
   const hmBreeds = [...new Set(HO.map(h=>h[0]))];
   hmBreeds.forEach(breed => {
-    if (!HO.filter(h=>h[0]===breed).some(h=>h[7]===1)) return;
+    if (!HO.filter(h=>h[0]===breed).some(h=>h[4]===1)) return;
     const hmId = `ho_hm_${slug(breed)}`;
     const on = !!d[hmId];
     document.getElementById(`mb_${hmId}`)?.classList.toggle('on', on);
@@ -960,12 +966,10 @@ function updateOverview() {
 
   // Horses (studied/bonded/ridden per coat + 1 horseman per qualifying breed)
   let hoTot=0,hoDon=0;
-  HO.forEach((h,i)=>{
-    [h[4],h[5],h[6]].forEach((v,j)=>{if(v){hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}});
-  });
+  HO.forEach((_,i)=>{ [0,1,2].forEach(j=>{hoTot++;if(d[`ho_${i}_${j}`])hoDon++;}); });
   const hoBreeds=[...new Set(HO.map(h=>h[0]))];
   hoBreeds.forEach(breed=>{
-    if(HO.filter(h=>h[0]===breed).some(h=>h[7]===1)){
+    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
       hoTot++; if(d[`ho_hm_${slug(breed)}`])hoDon++;
     }
   });
@@ -1023,8 +1027,8 @@ function updateSectionProgress(d) {
   // Horses by breed (coats + horseman per breed)
   [...new Set(HO.map(h=>h[0]))].forEach(breed=>{
     let tot=0,don=0;
-    HO.forEach((h,i)=>{if(h[0]!==breed)return;[h[4],h[5],h[6]].forEach((v,j)=>{if(v){tot++;if(d[`ho_${i}_${j}`])don++;}});});
-    if(HO.filter(h=>h[0]===breed).some(h=>h[7]===1)){
+    HO.forEach((_,i)=>{ const h=HO[i]; if(h[0]!==breed)return; [0,1,2].forEach(j=>{tot++;if(d[`ho_${i}_${j}`])don++;});});
+    if(HO.filter(h=>h[0]===breed).some(h=>h[4]===1)){
       tot++; if(d[`ho_hm_${slug(breed)}`])don++;
     }
     setTxt(`hp_${slug(breed)}`,`${don}/${tot}`);
