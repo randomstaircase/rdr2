@@ -162,7 +162,7 @@ const AN = [
   ['VULTURES','Eastern Turkey Vulture',0,1,1,1],
   ['VULTURES','Western Turkey Vulture',0,1,1,1],
   ['WOLVES','Gray Wolf',1,1,1,1],
-  ['WOLVES','Timber Wolf Wolf',1,1,1,1],
+  ['WOLVES','Timber Wolf',1,1,1,1],
   ['WOODPECKERS','Red-Bellied Woodpecker',0,1,1,1],
   ['WOODPECKERS','Pileated Woodpecker',0,1,1,1],
   ['LEGENDARY','Legendary Alligator',1,1,1,1],
@@ -790,7 +790,7 @@ const CH = {
     ['Level 9','Catch a Fish That Weighs at Least 19 lbs','$20 / 150 Stamina XP'],
     ['Level 10','Catch One of Each Type of Fish in the World','Survivalist Holster'],
   ],
-    'WEAPONS EXPERT':[
+  'WEAPONS EXPERT':[
     ["Level 1","Kill Three Enemies with a Knife",'Weapons Expert Holster'],
     ['Level 2','Kill Three Enemies in 10 Seconds Using Only Throwing Knives','$5; 25 Health XP'],
     ['Level 3','Kill Three Birds of Prey Using Only a Tomahawk','Weapons Expert Gun Belt'],
@@ -877,7 +877,7 @@ const ST = {
 'Dear Uncle Tacitus',
 'Fleeting Joy',
 'A Fork in the Road',
-'That’s Murfree Country'],
+'That's Murfree Country'],
 
   'Chapter 6':['Icarus and Friends',
 'Visiting Hours',
@@ -896,7 +896,7 @@ const ST = {
 'Goodbye, Dear Friend',
 'Mrs. Sadie Adler, Widow (I & II)',
 'Favored Sons',
-'The King’s Son',
+'The King's Son',
 'My Last Boy',
 'Our Best Selves',
 'Red Dead Redemption'],
@@ -914,11 +914,11 @@ const ST = {
 
   'Epilogue II':['Bare Knuckles Friendships',
 'Home Improvement for Beginners',
-'An Honest Day’s Labors',
+'An Honest Day's Labors',
 'The Tool Box',
 'A New Jerusalem',
 'A Quick Favor for an Old Friend',
-'Uncle’s Bad Day',
+'Uncle's Bad Day',
 'Trying Again',
 'A Really Big Bastard',
 'A New Future Imagined',
@@ -1161,3 +1161,171 @@ const CIG = {
     ['No. 12 Locomotion II','New Hanover','Butcher Creek','Ruined building, fireplace mantle'],
   ]},
 };
+
+const DINO_BONES = [
+  ['Bone 1','Heartlands','Southeast of Horseshoe Overlook, near the dried riverbed'],
+  ['Bone 2','Heartlands','North of Flatneck Station, rocky outcrop'],
+  ['Bone 3','Cholla Springs','West of Armadillo, base of the canyon wall'],
+  ['Bone 4','Cholla Springs','South of Tumbleweed, near the old ruins'],
+  ['Bone 5','Roanoke Ridge','North of Annesburg, cliffside near the mine'],
+  ['Bone 6','Roanoke Ridge','East of Butcher Creek, rocky hillside'],
+  ['Bone 7','Grizzlies East','Near Whinyard Strait, frozen lakeside'],
+  ['Bone 8','Grizzlies East','Southwest of Barrow Lagoon, snowy ridge'],
+  ['Bone 9','Grizzlies West','North of Window Rock, stone ledge'],
+  ['Bone 10','Grizzlies West','Near the summit of Mount Hagen'],
+  ['Bone 11','Big Valley','Southeast of Owanjila Dam, hillside'],
+  ['Bone 12','Big Valley','Near Black Bone Forest, rocky terrain'],
+  ['Bone 13','Tall Trees','Along the Upper Montana River, riverbank'],
+  ['Bone 14','Tall Trees','South of Nekoti Rock, forest floor'],
+  ['Bone 15','Great Plains','Northeast of Blackwater, open plains'],
+  ['Bone 16','Great Plains','Near Flat Iron Lake, southern shore'],
+  ['Bone 17','Bayou Nwa','East of Lagras, swamp edge'],
+  ['Bone 18','Bayou Nwa','Near Lakay, north of the settlement'],
+  ['Bone 19','Bluewater Marsh','West of Caliga Hall, marshland'],
+  ['Bone 20','Bluewater Marsh','North of Rhodes, elevated ridge'],
+  ['Bone 21','Scarlett Meadows','Near the Ringneck Creek, canyon floor'],
+  ['Bone 22','Scarlett Meadows','Southwest of Braithwaite Manor'],
+  ['Bone 23','Stillwater Creek','Along the creek bed, east side'],
+  ['Bone 24','Hennigans Stead','Near the old farm ruins'],
+  ['Bone 25','Rio Bravo','South of Thieves Landing, dry gulch'],
+  ['Bone 26','Rio Bravo','Near the Manteca Falls, rocky base'],
+  ['Bone 27','Río Bravo','West of Del Lobo Rock'],
+  ['Bone 28','Gaptooth Ridge','Near the Gaptooth Breach, mine entrance'],
+  ['Bone 29','Cholla Springs','Northeast of Armadillo, behind the saloon hill'],
+  ['Bone 30','Heartlands','Complete — mail all findings to Deborah MacGuiness'],
+];
+
+// ROCK CARVINGS (10) — [name, region, description]
+const ROCK_CARVINGS = [
+  ['Carving 1','Big Valley','Northwest of Strawberry near Francis Sinclair\'s cabin'],
+  ['Carving 2','Grizzlies East','Near the Barrow Lagoon, rocky cliff face'],
+  ['Carving 3','Grizzlies East','North of Moonstone Pond, stone outcrop'],
+  ['Carving 4','Grizzlies West','Near Mount Hagen, high altitude cliff'],
+  ['Carving 5','Cumberland Forest','South of Bacchus Station, carved boulder'],
+  ['Carving 6','Roanoke Ridge','Near the Roanoke Valley, riverside cliff'],
+  ['Carving 7','Cholla Springs','East of Lake Don Julio, canyon wall'],
+  ['Carving 8','Hennigans Stead','Rocky hillside near the old farmstead'],
+  ['Carving 9','Rio Bravo','Near Manteca Falls, carved stone face'],
+  ['Carving 10','Tall Trees','Northeast of Manzanita Post, forested cliff'],
+];
+
+// DREAMCATCHERS (20) — [name, region, description]
+const DREAMCATCHERS = [
+  ['Dreamcatcher 1','Roanoke Ridge','Tree near Annesburg, northeast of town'],
+  ['Dreamcatcher 2','Roanoke Ridge','Near Brandywine Drop, cliff-side tree'],
+  ['Dreamcatcher 3','Roanoke Ridge','Southwest of Van Horn, forest tree'],
+  ['Dreamcatcher 4','Cumberland Forest','Near Bacchus Station, pine tree'],
+  ['Dreamcatcher 5','Cumberland Forest','West of Emerald Ranch, large oak'],
+  ['Dreamcatcher 6','Heartlands','Near Flatneck Station, lone tree'],
+  ['Dreamcatcher 7','Heartlands','East of Dewberry Creek, tree cluster'],
+  ['Dreamcatcher 8','Grizzlies East','Near Moonstone Pond, birch tree'],
+  ['Dreamcatcher 9','Grizzlies East','South of Barrow Lagoon, pine'],
+  ['Dreamcatcher 10','Big Valley','Near Little Creek River, willow tree'],
+  ['Dreamcatcher 11','Big Valley','Southwest of Strawberry, forest path'],
+  ['Dreamcatcher 12','Tall Trees','Near Nekoti Rock, tall pine'],
+  ['Dreamcatcher 13','Tall Trees','South of Aurora Basin, tree grove'],
+  ['Dreamcatcher 14','Great Plains','Near Bard\'s Crossing, cottonwood'],
+  ['Dreamcatcher 15','Bayou Nwa','Near Shady Belle, cypress tree'],
+  ['Dreamcatcher 16','Bayou Nwa','East of Lagras, swamp oak'],
+  ['Dreamcatcher 17','Bluewater Marsh','Near Caliga Hall, large tree'],
+  ['Dreamcatcher 18','Scarlett Meadows','Near Flat Iron Lake shore, pine'],
+  ['Dreamcatcher 19','Lemoyne','Northeast of Rhodes, roadside tree'],
+  ['Dreamcatcher 20','Heartlands','Reward: Ancient Arrowhead hidden treasure'],
+];
+
+// GRAVES (9) — fallen companions
+const GRAVES = [
+  ['Davey Callender','Epilogue — Near Chez Porter, Ambarino'],
+  ['Jenny Kirk','Epilogue — Near Chez Porter, Ambarino'],
+  ['Mac Callender','Epilogue — South of Hanging Dog Ranch, West Elizabeth'],
+  ['Kieran Duffy','Epilogue — South of Hanging Dog Ranch, West Elizabeth'],
+  ['Sean MacGuire','Epilogue — North of Rhodes, Lemoyne'],
+  ['Lenny Summers','Epilogue — North of Rhodes, Lemoyne'],
+  ['Susan Grimshaw','Epilogue — North of Beaver Hollow, Roanoke Ridge'],
+  ['Hosea Matthews','Epilogue — Saint Denis Cemetery, Lemoyne'],
+  ['Arthur Morgan','Epilogue — Cairn Lake or overlooking Donner Falls (honor dependent)'],
+];
+
+// HUNTING REQUESTS (5 request lists)
+const HUNTING_REQUESTS = [
+  {list:'Request 1 (Poster at Train Station)', animals:[
+    ['Oriole Carcass (Perfect)','Baltimore or Hooded Oriole'],
+    ['Woodpecker Carcass (Perfect)','Red-Bellied or Pileated Woodpecker'],
+    ['Robin Carcass (Perfect)','American Robin'],
+  ]},
+  {list:'Request 2 (via Mail)', animals:[
+    ['Squirrel Carcass (Perfect)','Eastern Gray Squirrel'],
+    ['Chipmunk Carcass (Perfect)','Western Chipmunk'],
+    ['Rat Carcass (Perfect)','Norway Rat'],
+    ['Toad Carcass (Perfect)','American Bullfrog'],
+  ]},
+  {list:'Request 3 (via Mail)', animals:[
+    ['Cardinal Carcass (Perfect)','Northern Cardinal'],
+    ['Blue Jay Carcass (Perfect)','Blue Jay'],
+    ['Bluegill (Perfect)','Bluegill Fish'],
+  ]},
+  {list:'Request 4 (via Mail)', animals:[
+    ['Bat Carcass (Perfect)','Little Brown Bat'],
+    ['Opossum Carcass (Perfect)','Virginia Opossum'],
+    ['Bullfrog Carcass (Perfect)','American Bullfrog'],
+  ]},
+  {list:'Request 5 (Epilogue — via Mail)', animals:[
+    ['Iguana Skin (Perfect)','Green or Desert Iguana'],
+    ['Skunk Pelt (Perfect)','Striped Skunk'],
+    ['Snapping Turtle (Perfect)','Common Snapping Turtle'],
+    ['Heron Carcass (Perfect)','Great Blue Heron'],
+  ]},
+];
+
+// EXOTICS — Algernon Wasp requests (6 total)
+const EXOTICS = [
+  {req:"Request 1",items:[
+    ['Lady Slipper Orchid (x5)','Found in Bayou Nwa swamps'],
+    ['Acuna\'s Star Orchid (x5)','Found in Bayou Nwa and Lemoyne'],
+    ['Ghost Orchid (x5)','Found in Bayou Nwa, rare'],
+    ['Heron Plume (x3)','From Great Blue or Tricolored Heron'],
+    ['Egret Feather (x3)','From Snowy, Little, or Reddish Egret'],
+    ['Spoonbill Feather (x5)','From Roseate Spoonbill'],
+  ]},
+  {req:"Request 2",items:[
+    ['Night-Scented Orchid (x5)','Found in Bayou Nwa'],
+    ['Queen\'s Orchid (x5)','Found in Bayou Nwa'],
+    ['Moccasin Flower Orchid (x5)','Found in Roanoke Ridge'],
+    ['Rat Tail Orchid (x5)','Found in Bayou Nwa'],
+    ['Crow Feather (x3)','From American Crow'],
+    ['Raven Feather (x3)','From Common Raven'],
+    ['Vulture Feather (x3)','From Turkey Vulture'],
+  ]},
+  {req:"Request 3",items:[
+    ['Dragon\'s Mouth Orchid (x5)','Found in Grizzlies'],
+    ['Lady of the Night Orchid (x5)','Found in Bayou Nwa'],
+    ['Sparrow Hawk Feather (x3)','From Cooper\'s Hawk or similar'],
+    ['Eagle Feather (x3)','From Bald or Golden Eagle'],
+    ['Oriole Feather (x3)','From Baltimore or Hooded Oriole'],
+  ]},
+  {req:"Request 4",items:[
+    ['Cigar Orchid (x5)','Found in Bayou Nwa'],
+    ['Clamshell Orchid (x5)','Found in Bayou Nwa'],
+    ['Spider Orchid (x5)','Found in Bayou Nwa'],
+    ['Parrot Feather (x5)','From Blue & Yellow or Scarlet Macaw'],
+    ['Peacock Feather (x3)','From Peacock (Saint Denis area)'],
+  ]},
+  {req:"Request 5",items:[
+    ['Sparrow\'s Egg Orchid (x5)','Found in Tall Trees / Big Valley'],
+    ['Lady Slipper Orchid x5 (repeat)','Second batch required'],
+    ['Condor Egg (x1)','From Californian Condor nest, Flat Iron Lake'],
+  ]},
+  {req:"Request 6 — Final",items:[
+    ['All prior requests complete','Deliver final items to Algernon Wasp'],
+    ['Reward: Algernon\'s Revolver + Exotic Hat + $200',''],
+  ]},
+];
+
+// TREASURE HUNTS — for 100% completion need 1, track all
+const TREASURES = [
+  {name:'Jack Hall Gang',clues:['Map found on Flaco Hernandez or purchased from stranger near Flatneck Station','Treasure 1: Caliban\'s Seat, Cumberland Forest','Treasure 2: Cotorra Springs, Ambarino','Final: O\'Creagh\'s Run island']},
+  {name:'Poisonous Trail',clues:['Map near Cairn Lake, Grizzlies','Treasure 1: West of Window Rock','Treasure 2: Elysian Pool island','Final: East of Annesburg, cliff shelf']},
+  {name:'High Stakes',clues:['Map from a stranger near Fort Wallace','Treasure 1: West of Horseshoe Overlook','Treasure 2: Hanging Dog Ranch cliff','Final: Near Bacchus Bridge, Ambarino']},
+  {name:'Landmarks of Riches',clues:['Map from lockbox east of Elysian Pool','Treasure 1: Donner Falls','Treasure 2: Bacchus Station bridge','Final: Mount Shann summit']},
+  {name:'Elemental Trail',clues:['Map from cave painting near Roanoke Ridge','Treasure 1: Fire (near burning settlement)','Treasure 2: Water (river cave)','Final: Ancient Arrowhead — after all 20 Dreamcatchers']},
+];
