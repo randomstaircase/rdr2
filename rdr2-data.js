@@ -67,7 +67,6 @@ const AN = [
   ['FOXES','American Red Fox',1,1,1,1],
   ['FOXES','American Gray Fox',1,1,1,1],
   ['FOXES','Silver Fox',1,1,1,1],
-  ['GILA MONSTER','Banded Gila Monster',1,1,1,1],
   ['GOATS','Alpine Goat',0,0,0,1],
   ['GOOSE','Canada Goose',0,1,1,1],
   ['HAWKS','Ferruginous Hawk',0,1,1,1],
@@ -124,7 +123,6 @@ const AN = [
   ['JACKRABBIT','Black-Tailed Jackrabbit',1,1,1,1],
   ['JACKRABBIT','Desert Cottontail',1,1,1,1],
   ['RACCOON','Common Raccoon',1,1,1,1],
-  ['RATTLESNAKE','Western Diamondback Rattlesnake',1,1,1,1],
   ['ROBIN','American Robin',0,1,1,1],
   ['SHEEP','Domestic Sheep',0,0,0,1],
   ['SKUNK','Striped Skunk',1,1,1,1],
@@ -148,6 +146,36 @@ const AN = [
   ['LEGENDARY','Legendary Pronghorn',1,1,1,1],
   ['LEGENDARY','Legendary Ram',1,1,1,1],
   ['LEGENDARY','Legendary White Bison',1,1,1,1],
+
+  // RATS
+  ['RATS','Norway Rat',1,1,1,1],
+  // RABBITS
+  ['RABBITS','Cottontail Rabbit',1,1,1,1],
+  ['RABBITS','Jack Rabbit',1,1,1,1],
+  // SNAKES (all species under one group)
+  ['SNAKES','Banded Gila Monster',1,1,1,1],
+  ['SNAKES','Bull Snake',1,1,1,1],
+  ['SNAKES','Coastal Taipan',1,1,1,1],
+  ['SNAKES','Corn Snake',1,1,1,1],
+  ['SNAKES','Diamondback Rattlesnake',1,1,1,1],
+  ['SNAKES','Fer-de-Lance Snake',1,1,1,1],
+  ['SNAKES','King Snake',1,1,1,1],
+  ['SNAKES','Prairie Rattlesnake',1,1,1,1],
+  ['SNAKES','Water Moccasin',1,1,1,1],
+  // SONGBIRDS
+  ['SONGBIRDS','American Goldfinch',0,1,1,1],
+  ['SONGBIRDS','Northern Mockingbird',0,1,1,1],
+  ['SONGBIRDS','Songbird',0,1,1,1],
+  ['SONGBIRDS','Sparrow',0,1,1,1],
+  ['SONGBIRDS','Indigo Bunting',0,1,1,1],
+  // TOADS
+  ['TOADS','American Toad',1,1,1,1],
+  ['TOADS','Red-striped Toad',1,1,1,1],
+  ['TOADS','Sonoran Desert Toad',1,1,1,1],
+  ['TOADS','Western Toad',1,1,1,1],
+  // WOODPECKERS
+  ['WOODPECKERS','Pileated Woodpecker',0,1,1,1],
+  ['WOODPECKERS','Red-bellied Woodpecker',0,1,1,1],
   ['LEGENDARY','Legendary Wolf',1,1,1,1],
 ];
 const AN_COLS = ['TRACKED','KILLED','SKINNED','STUDIED'];
