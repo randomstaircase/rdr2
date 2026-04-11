@@ -363,42 +363,22 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
     <!-- Google Sheets Sync -->
     <div class="set-section">
       <div class="set-section-title">Google Sheets Sync</div>
-      <div class="set-row" style="gap:.5rem;margin-bottom:.4rem;">
+      <div class="set-row" style="gap:.5rem;margin-bottom:.5rem;">
         <span class="set-label">Script URL</span>
         <input type="text" id="gas-url" class="wide" placeholder="https://script.google.com/macros/s/…/exec" oninput="saveCfg()"/>
         <button class="btn btn-ghost" onclick="testGasConn()">Test</button>
-        <button class="btn btn-gold" onclick="runGasSync()">↕ Sync</button>
-        <button class="btn btn-ghost" onclick="runGasPull()">↓ Pull</button>
-        <button class="btn btn-ghost" onclick="runGasPush()">↑ Push</button>
+      </div>
+      <div class="set-row" style="gap:.5rem;margin-bottom:.4rem;">
+        <button class="btn btn-gold" onclick="runGasSync()">↕ Sync Now</button>
+        <button class="btn btn-ghost" onclick="runGasPull()">↓ Pull from Sheet</button>
+        <button class="btn btn-ghost" onclick="runGasPush()">↑ Push to Sheet</button>
       </div>
       <div class="set-row">
         <span id="gas-status" class="set-status"></span>
       </div>
-    </div>
-
-    <!-- GitHub Sync (legacy) -->
-    <div class="set-section">
-      <div class="set-section-title">GitHub Sync (legacy)</div>
-      <div class="set-row">
-        <span class="set-label">Repo</span>
-        <input type="text" id="cr" placeholder="owner/rdr2-tracker" style="width:200px;" oninput="saveCfg()"/>
-        <span class="set-label">Branch</span>
-        <input type="text" id="cb" placeholder="main" style="width:70px;" oninput="saveCfg()"/>
-        <span class="set-label">Token</span>
-        <input type="password" id="ct" placeholder="ghp_…" style="width:180px;" oninput="saveCfg()"/>
-        <button class="btn btn-ghost" onclick="syncGH()">GitHub Sync</button>
-        <span id="ls" class="set-status"></span>
-      </div>
-    </div>
-
-    <!-- Sync Code -->
-    <div class="set-section">
-      <div class="set-section-title">Device Sync Code</div>
-      <div class="set-row">
-        <input type="text" id="sync-code" placeholder="ABC123" class="code" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
-        <button class="btn btn-ghost" onclick="joinSyncCode()">Join</button>
-        <button class="btn btn-ghost" onclick="createSyncCode()">New Code</button>
-        <span id="sync-code-status" class="set-status"></span>
+      <div style="font-size:11px;color:var(--muted);margin-top:.4rem;line-height:1.5;">
+        Sync saves your progress to a Google Sheet so it's accessible from any device.
+        Paste the Apps Script URL above — get it from your sheet via Extensions → Apps Script → Deploy.
       </div>
     </div>
 
@@ -419,6 +399,8 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 
   </div>
 </div>
+<!-- hidden stubs so getCfg() doesn't error -->
+<input type="hidden" id="cr"/><input type="hidden" id="cb" value="main"/><input type="hidden" id="ct"/><input type="hidden" id="ls"/>
 
 <div id="overview">
   <div class="sc"><div class="sl">Animals</div><div class="sv" id="ov-an">0/—</div><div class="pbw"><div class="pbf" id="pb-an" style="width:0%"></div></div></div>
