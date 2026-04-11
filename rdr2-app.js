@@ -36,6 +36,8 @@ function saveCfg() {
   localStorage.setItem('rdr2_repo',   document.getElementById('cr').value);
   localStorage.setItem('rdr2_branch', document.getElementById('cb').value || 'main');
   localStorage.setItem('rdr2_token',  document.getElementById('ct').value);
+  const gasEl = document.getElementById('gas-url');
+  if (gasEl && gasEl.value.trim()) localStorage.setItem('rdr2_gas_url', gasEl.value.trim());
 }
 function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
 
@@ -96,6 +98,161 @@ function setSyncStatus(msg, type) {
 // Override saveLocal to also save under sync code
 const _origSaveLocal = typeof saveLocal !== 'undefined' ? null : null;
 
+// ═══════════════════ THEME ═══════════════════
+function selectTheme(name) {
+  localStorage.setItem('rdr2_theme', name);
+  applyTheme();
+}
+function applyTheme() {
+  const t = localStorage.getItem('rdr2_theme') || '';
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-card').forEach(c => {
+    c.classList.toggle('active', (c.getAttribute('data-theme') || '') === t);
+  });
+}
+
+// ═══════════════════ GOOGLE APPS SCRIPT SYNC ═══════════════════
+function getGasUrl() {
+  const url = localStorage.getItem('rdr2_gas_url') || '';
+  if (!url) { setGasStatus('No Script URL saved — paste it above.', 'err'); return null; }
+  return url;
+}
+function setGasStatus(msg, type) {
+  const el = document.getElementById('gas-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type==='ok' ? '#7ecf70' : type==='err' ? '#f08080' : 'var(--muted)';
+}
+function gasGet(action, extraParams) {
+  const baseUrl = getGasUrl();
+  if (!baseUrl) throw new Error('No Script URL');
+  const params = new URLSearchParams({ action, ...(extraParams||{}) });
+  const fullUrl = baseUrl + '?' + params.toString();
+  return new Promise((resolve, reject) => {
+    const cbName = '_rdr2Cb_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timed out — Apps Script may be slow to start.')); }, 90000);
+    function cleanup() { clearTimeout(timer); delete window[cbName]; const el=document.getElementById(cbName); if(el)el.remove(); }
+    window[cbName] = function(data) { cleanup(); if(data&&data.error) reject(new Error(data.error)); else resolve(data); };
+    const script = document.createElement('script');
+    script.id = cbName; script.src = fullUrl + '&callback=' + cbName;
+    script.onerror = function() { cleanup(); reject(new Error('Script load failed — deploy Web App as "Anyone"')); };
+    document.head.appendChild(script);
+  });
+}
+async function gasPost(body) {
+  const baseUrl = getGasUrl();
+  if (!baseUrl) throw new Error('No Script URL');
+  await fetch(baseUrl, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(body), mode:'no-cors', redirect:'follow' });
+  return { status:'sent' };
+}
+function dbToRows() {
+  const rows = [];
+  Object.entries(db.playthroughs || {}).forEach(([ptName, ptData]) => {
+    Object.entries(ptData).forEach(([key, val]) => {
+      rows.push({ pt: ptName, key, val: JSON.stringify(val) });
+    });
+  });
+  rows.push({ pt:'__meta__', key:'gold', val: JSON.stringify(db.gold||0) });
+  if (db.inventory) rows.push({ pt:'__meta__', key:'inventory', val: JSON.stringify(db.inventory) });
+  return rows;
+}
+function rowsToDb(rows) {
+  const newDb = { playthroughs:{}, inventory:{}, gold:0 };
+  rows.forEach(r => {
+    try {
+      if (r.pt === '__meta__') {
+        if (r.key === 'gold') newDb.gold = JSON.parse(r.val);
+        else if (r.key === 'inventory') newDb.inventory = JSON.parse(r.val);
+      } else {
+        if (!newDb.playthroughs[r.pt]) newDb.playthroughs[r.pt] = {};
+        newDb.playthroughs[r.pt][r.key] = JSON.parse(r.val);
+      }
+    } catch(e) {}
+  });
+  return newDb;
+}
+async function testGasConn() {
+  setGasStatus('Testing…');
+  try {
+    const data = await gasGet('ping', {});
+    setGasStatus('✓ Connected — ' + (data.msg||'OK'), 'ok');
+  } catch(e) { setGasStatus('✗ ' + e.message, 'err'); }
+}
+async function runGasPull() {
+  setGasStatus('Pulling from Sheet…');
+  try {
+    const data = await gasGet('pull', {});
+    if (!data || !Array.isArray(data.rows)) { setGasStatus('No data returned.', 'err'); return; }
+    const merged = rowsToDb(data.rows);
+    merged.inventory = merged.inventory || db.inventory || {};
+    db = merged;
+    saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
+    if (pt) renderAllChecks();
+    setGasStatus('✓ Pull complete — ' + data.rows.length + ' entries.', 'ok');
+    showSS('Pulled from Sheet', 'ok');
+  } catch(e) { setGasStatus('✗ Pull failed: ' + e.message, 'err'); }
+}
+async function runGasPush() {
+  setGasStatus('Pushing to Sheet…');
+  try {
+    const rows = dbToRows();
+    const batchSize = 200;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      setGasStatus('Pushing ' + Math.min(i+batchSize,rows.length) + '/' + rows.length + '…');
+      await gasPost({ action:'sync', rows: rows.slice(i, i+batchSize) });
+      if (i+batchSize < rows.length) await new Promise(r => setTimeout(r, 400));
+    }
+    setGasStatus('✓ Pushed ' + rows.length + ' entries.', 'ok');
+    showSS('Pushed to Sheet', 'ok');
+  } catch(e) { setGasStatus('✗ Push failed: ' + e.message, 'err'); }
+}
+async function runGasSync() {
+  setGasStatus('Step 1/2: Pulling…');
+  try {
+    const data = await gasGet('pull', {});
+    if (data && Array.isArray(data.rows) && data.rows.length > 0) {
+      const remote = rowsToDb(data.rows);
+      remote.inventory = remote.inventory || db.inventory || {};
+      db = remote;
+      saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
+      if (pt) renderAllChecks();
+      setGasStatus('Step 2/2: Pushing…');
+    }
+    await runGasPush();
+    setGasStatus('✓ Sync complete!', 'ok');
+    showSS('Sync complete', 'ok');
+  } catch(e) { setGasStatus('✗ Sync failed: ' + e.message, 'err'); }
+}
+
+// ═══════════════════ JSON BACKUP ═══════════════════
+function exportJSON() {
+  const json = JSON.stringify(db, null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json], { type:'application/json' }));
+  a.download = 'rdr2-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  showSS('JSON backup downloaded', 'ok');
+}
+function importJSON(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.playthroughs) throw new Error('Invalid backup — missing playthroughs');
+      if (!confirm('This will overwrite ALL current data. Continue?')) return;
+      db = parsed;
+      if (!db.inventory) db.inventory = {};
+      if (db.gold === undefined) db.gold = 0;
+      saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
+      if (pt && db.playthroughs[pt]) renderAllChecks();
+      showSS('JSON backup restored', 'ok');
+    } catch(err) { showSS('Restore failed: ' + err.message, 'err'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
 // ═══════════════════ GOLD ═══════════════════
 function saveGold(val) {
   db.gold = parseFloat(val) || 0;
@@ -117,6 +274,8 @@ async function init() {
   if (!db.inventory) db.inventory = {};
   if (db.gold === undefined) db.gold = 0;
   loadGold();
+  applyTheme();
+  const gasUrl=localStorage.getItem('rdr2_gas_url')||''; const gasEl=document.getElementById('gas-url'); if(gasEl&&gasUrl)gasEl.value=gasUrl;
   // Load sync code if previously set
   syncCode = localStorage.getItem('rdr2_synccode') || '';
   if (syncCode) {
@@ -1296,7 +1455,12 @@ function showTab(name, btn) {
   btn.classList.add('active');
 }
 
-function toggleSet() { document.getElementById('settings-bar').classList.toggle('open'); }
+function toggleSet() {
+  const bar = document.getElementById('settings-bar');
+  const btn = document.getElementById('gear-btn');
+  bar.classList.toggle('open');
+  if (btn) btn.classList.toggle('active', bar.classList.contains('open'));
+}
 
 // ═══════════════════ STORAGE ═══════════════════
 function saveLocal(){
