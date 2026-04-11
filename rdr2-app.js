@@ -33,9 +33,10 @@ function getCfg() {
   return { repo: localStorage.getItem('rdr2_repo')||'', branch: localStorage.getItem('rdr2_branch')||'main', token: localStorage.getItem('rdr2_token')||'' };
 }
 function saveCfg() {
-  localStorage.setItem('rdr2_repo',   document.getElementById('cr').value);
-  localStorage.setItem('rdr2_branch', document.getElementById('cb').value || 'main');
-  localStorage.setItem('rdr2_token',  document.getElementById('ct').value);
+  // GitHub fields kept as hidden stubs — no longer shown in UI
+  const crEl = document.getElementById('cr'); if (crEl) localStorage.setItem('rdr2_repo', crEl.value);
+  const cbEl = document.getElementById('cb'); if (cbEl) localStorage.setItem('rdr2_branch', cbEl.value || 'main');
+  const ctEl = document.getElementById('ct'); if (ctEl) localStorage.setItem('rdr2_token', ctEl.value);
   const gasEl = document.getElementById('gas-url');
   if (gasEl && gasEl.value.trim()) localStorage.setItem('rdr2_gas_url', gasEl.value.trim());
 }
@@ -145,27 +146,175 @@ async function gasPost(body) {
   await fetch(baseUrl, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(body), mode:'no-cors', redirect:'follow' });
   return { status:'sent' };
 }
+// ── Label lookup helpers for readable Sheet rows ──
+function getAnLabel(i, j) {
+  const a = AN[i]; if (!a) return null;
+  const cols = AN_COLS; // ['TRACKED','KILLED','SKINNED','STUDIED']
+  if (!a[j+2]) return null; // col not active for this animal
+  return { category: 'Animals - ' + a[0], item: a[1], action: cols[j] };
+}
+function getPlLabel(i, j) {
+  const p = PL[i]; if (!p) return null;
+  const cols = PL_COLS; // ['PICKED','RECIPE','HERBALIST']
+  if (!p[j+2]) return null;
+  return { category: 'Plants - ' + p[0], item: p[1], action: cols[j] };
+}
+function getFiLabel(i, j, isLeg) {
+  const arr = isLeg ? FI.filter(f=>f[1]) : FI.filter(f=>!f[1]);
+  const f = arr[i]; if (!f) return null;
+  const cols = isLeg ? ['CAUGHT'] : FI_COLS_NORM;
+  return { category: isLeg ? 'Fish - Legendary' : 'Fish', item: f[0], action: cols[j] };
+}
+function getHoLabel(i, j) {
+  const h = HO[i]; if (!h) return null;
+  return { category: 'Horses - ' + h[0], item: h[1] + ' (' + h[2] + ')', action: HO_COLS[j] };
+}
+function getWeLabel(i) {
+  const w = WE[i]; if (!w) return null;
+  return { category: 'Weapons - ' + w[0], item: w[1], action: 'OBTAINED' };
+}
+function getEqLabel(i) {
+  const e = EQ[i]; if (!e) return null;
+  return { category: 'Equipment - ' + e[0], item: e[1], action: 'OBTAINED' };
+}
+function getPeLabel(i) {
+  const p = PE[i]; if (!p) return null;
+  return { category: 'Camp - ' + p[0], item: p[1], action: 'COMPLETE' };
+}
+function getChLabel(set, lvl) {
+  const tasks = CH[set]; if (!tasks || !tasks[lvl]) return null;
+  return { category: 'Challenges - ' + set, item: tasks[lvl][0], action: tasks[lvl][1].slice(0,60) };
+}
+function getStLabel(chapter, idx) {
+  const missions = ST[chapter]; if (!missions || !missions[idx]) return null;
+  return { category: 'Story - ' + chapter, item: missions[idx], action: 'COMPLETE' };
+}
+function getAcLabel(i) {
+  const a = AC[i]; if (!a) return null;
+  return { category: 'Achievements - ' + a[1], item: a[0], action: 'UNLOCKED' };
+}
+
+// Decode a raw db key into a readable label object {category,item,action}
+function decodeKey(rawKey) {
+  // an_6_0  → animal index 6, col 0
+  let m;
+  if ((m = rawKey.match(/^an_(\d+)_(\d+)$/)))    return getAnLabel(+m[1],+m[2]);
+  if ((m = rawKey.match(/^pl_(\d+)_?(\d+)?$/))) {
+    const j = m[2] !== undefined ? +m[2] : 0;
+    return getPlLabel(+m[1], j);
+  }
+  if ((m = rawKey.match(/^fi_(\d+)_(\d+)$/)))    return getFiLabel(+m[1],+m[2],false);
+  if ((m = rawKey.match(/^fl_(\d+)_(\d+)$/)))    return getFiLabel(+m[1],+m[2],true);
+  if ((m = rawKey.match(/^ho_(\d+)_(\d+)$/)))    return getHoLabel(+m[1],+m[2]);
+  if ((m = rawKey.match(/^ho_hm_(.+)$/))) {
+    const breed = m[1].replace(/_/g,' ').toUpperCase();
+    return { category:'Horses - Horseman Challenge', item: breed, action:'COMPLETE' };
+  }
+  if ((m = rawKey.match(/^we_(\d+)$/)))           return getWeLabel(+m[1]);
+  if ((m = rawKey.match(/^eq_(\d+)$/)))           return getEqLabel(+m[1]);
+  if ((m = rawKey.match(/^pe_(\d+)_done$/)))      return getPeLabel(+m[1]);
+  if ((m = rawKey.match(/^pe_(\d+)_r(\d+)$/))) {
+    const p = PE[+m[1]]; if (!p) return null;
+    const req = p[2][+m[2]]; if (!req) return null;
+    return { category:'Camp - ' + p[0], item: p[1], action: req[0] + ' x' + req[1] };
+  }
+  if ((m = rawKey.match(/^ch_([^_]+(?:_[^_]+)*)_(\d+)$/))) {
+    // ch set uses slug — reverse slug to find CH key
+    const chKey = Object.keys(CH).find(k => slug(k) === m[1]);
+    if (chKey) return getChLabel(chKey, +m[2]);
+  }
+  if ((m = rawKey.match(/^st_(.+)_(\d+)_([bsg])$/))) {
+    const chapter = Object.keys(ST).find(k => slug(k) === m[1]);
+    if (chapter) {
+      const medal = m[3]==='b'?'Bronze':m[3]==='s'?'Silver':'Gold';
+      const missions = ST[chapter]; if (!missions||!missions[+m[2]]) return null;
+      return { category:'Story - ' + chapter, item: missions[+m[2]], action: medal + ' Medal' };
+    }
+  }
+  if ((m = rawKey.match(/^st_(.+)_(\d+)$/))) {
+    const chapter = Object.keys(ST).find(k => slug(k) === m[1]);
+    if (chapter) return getStLabel(chapter, +m[2]);
+  }
+  if ((m = rawKey.match(/^ac_(\d+)$/)))           return getAcLabel(+m[1]);
+  // Cigarette cards
+  if ((m = rawKey.match(/^cig_(.+)_(\d+)$/))) {
+    const setKey = Object.keys(CIG).find(k => slug(k) === m[1]);
+    if (setKey) {
+      const cards = CIG[setKey].cards; const card = cards[+m[2]];
+      return { category: 'Cig Cards - ' + setKey, item: card ? card[0] : 'Card ' + m[2], action: 'COLLECTED' };
+    }
+  }
+  // Collections
+  if ((m = rawKey.match(/^dino_(\d+)$/)))  return { category:'Collections - Dinosaur Bones', item: DINO_BONES[+m[1]] ? DINO_BONES[+m[1]][0] : 'Bone '+m[1], action:'FOUND' };
+  if ((m = rawKey.match(/^dc_(\d+)$/)))    return { category:'Collections - Dreamcatchers', item: DREAMCATCHERS[+m[1]] ? DREAMCATCHERS[+m[1]][0] : 'DC '+m[1], action:'FOUND' };
+  if ((m = rawKey.match(/^rock_(\d+)$/)))  return { category:'Collections - Rock Carvings', item: ROCK_CARVINGS[+m[1]] ? ROCK_CARVINGS[+m[1]][0] : 'Carving '+m[1], action:'FOUND' };
+  if ((m = rawKey.match(/^grave_(\d+)$/))) return { category:'Collections - Graves', item: GRAVES[+m[1]] ? GRAVES[+m[1]][0] : 'Grave '+m[1], action:'VISITED' };
+  if ((m = rawKey.match(/^hunt_(\d+)_(\d+)$/))) {
+    const req = HUNTING_REQUESTS[+m[1]]; if (!req) return null;
+    const animal = req.animals[+m[2]]; if (!animal) return null;
+    return { category:'Collections - Hunting Requests', item: req.list + ': ' + animal[0], action:'SENT' };
+  }
+  if ((m = rawKey.match(/^exotic_(\d+)_(\d+)$/))) {
+    const req = EXOTICS[+m[1]]; if (!req) return null;
+    const item = req.items[+m[2]]; if (!item) return null;
+    return { category:'Collections - Exotic Requests', item: req.req + ': ' + item[0], action:'COLLECTED' };
+  }
+  if ((m = rawKey.match(/^treas_(\d+)_(\d+)$/))) {
+    const t = TREASURES[+m[1]]; if (!t) return null;
+    return { category:'Collections - Treasure Hunts', item: t.name, action: t.clues[+m[2]] ? t.clues[+m[2]].slice(0,60) : 'Clue '+m[2] };
+  }
+  // Trapper pieces
+  if ((m = rawKey.match(/^trp_(\d+)_(\d+)$/))) {
+    const outfit = TR_OUTFITS[+m[1]]; if (!outfit) return null;
+    const piece  = outfit.pieces[+m[2]]; if (!piece) return null;
+    return { category:'Trapper - ' + outfit.name, item: piece[0], action:'CRAFTED' };
+  }
+  if ((m = rawKey.match(/^tri_(\d+)$/))) {
+    const item = TR_ITEMS[+m[1]]; if (!item) return null;
+    return { category:'Trapper - ' + item[0], item: item[1], action:'CRAFTED' };
+  }
+  // Gold
+  if (rawKey === 'gold') return { category:'Meta', item:'Gold Balance', action:'VALUE' };
+  return null; // unknown key — skip
+}
+
 function dbToRows() {
   const rows = [];
   Object.entries(db.playthroughs || {}).forEach(([ptName, ptData]) => {
-    Object.entries(ptData).forEach(([key, val]) => {
-      rows.push({ pt: ptName, key, val: JSON.stringify(val) });
+    Object.entries(ptData).forEach(([rawKey, val]) => {
+      if (!val && val !== 0) return; // skip false/null/undefined
+      const label = decodeKey(rawKey);
+      if (!label) return; // skip unrecognised keys
+      rows.push({
+        pt:       ptName,
+        category: label.category,
+        item:     label.item,
+        action:   label.action,
+        val:      val === true ? '✓' : String(val),
+        // keep raw key for round-trip restore
+        _raw: rawKey,
+        _rawVal: JSON.stringify(val),
+      });
     });
   });
-  rows.push({ pt:'__meta__', key:'gold', val: JSON.stringify(db.gold||0) });
-  if (db.inventory) rows.push({ pt:'__meta__', key:'inventory', val: JSON.stringify(db.inventory) });
+  // Gold
+  if (db.gold) rows.push({ pt:'__meta__', category:'Meta', item:'Gold Balance', action:'VALUE', val: String(db.gold), _raw:'gold', _rawVal: JSON.stringify(db.gold) });
   return rows;
 }
+
 function rowsToDb(rows) {
-  const newDb = { playthroughs:{}, inventory:{}, gold:0 };
+  const newDb = { playthroughs:{}, inventory: db.inventory || {}, gold:0 };
   rows.forEach(r => {
     try {
       if (r.pt === '__meta__') {
-        if (r.key === 'gold') newDb.gold = JSON.parse(r.val);
-        else if (r.key === 'inventory') newDb.inventory = JSON.parse(r.val);
-      } else {
-        if (!newDb.playthroughs[r.pt]) newDb.playthroughs[r.pt] = {};
-        newDb.playthroughs[r.pt][r.key] = JSON.parse(r.val);
+        if (r._raw === 'gold' || r.item === 'Gold Balance') newDb.gold = parseFloat(r._rawVal || r.val) || 0;
+        return;
+      }
+      if (!newDb.playthroughs[r.pt]) newDb.playthroughs[r.pt] = {};
+      // Use raw key if available (reliable), else skip (can't restore without it)
+      if (r._raw) {
+        try { newDb.playthroughs[r.pt][r._raw] = JSON.parse(r._rawVal); }
+        catch(e) { newDb.playthroughs[r.pt][r._raw] = r._rawVal; }
       }
     } catch(e) {}
   });
