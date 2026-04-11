@@ -6,6 +6,7 @@
 <title>RDR2 Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
+/* ── MIDNIGHT FRONTIER (dark — default) ── */
 :root{
   --bg:#0E0E14;--panel:#181420;--panel2:#1e1828;
   --border:#5A2840;--border2:#3d1c2c;
@@ -14,17 +15,56 @@
   --success:#3a7a40;--success2:rgba(58,122,64,.15);
   --can-craft:#1a2e40;--can-craft-b:#2a6080;
   --font-d:'Cinzel',serif;--font-b:'Crimson Text',serif;
+  --header-bg:#0a0a10;--header-border:var(--gold);
 }
+/* ── SUN-BLEACHED ADOBE (light) ── */
+[data-theme="adobe"]{
+  --bg:#faf5ec;--panel:#f5eedf;--panel2:#ede4d4;
+  --border:#c8a870;--border2:#b09060;
+  --accent:#b86030;--gold:#9a5020;--straw:#7a3a10;
+  --text:#3a2010;--muted:#9a6a30;--muted2:#b08050;
+  --success:#3a6020;--success2:rgba(58,96,32,.12);
+  --can-craft:#e8f0d8;--can-craft-b:#7a9a50;
+  --header-bg:#f0e8d4;--header-border:#c8a870;
+}
+[data-theme="adobe"] .brand{color:#7a3a10;}
+[data-theme="adobe"] .brand span{color:#b86030;}
+[data-theme="adobe"] #sticky-bar header{box-shadow:0 2px 12px rgba(80,40,0,.15);}
+[data-theme="adobe"] .btn-gold{background:#9a5020;border-color:#7a3a10;color:#faf5ec;}
+[data-theme="adobe"] .btn-gold:hover{background:#7a3a10;}
+[data-theme="adobe"] .btn-ghost{border-color:var(--border2);color:var(--muted);}
+[data-theme="adobe"] .tb.active{background:rgba(154,80,32,.15);border-color:rgba(154,80,32,.5);color:var(--straw);}
+[data-theme="adobe"] .sv{color:#7a3a10;}
+[data-theme="adobe"] .sc-gold .sv{color:#9a5020;}
+[data-theme="adobe"] .pbf{background:#b86030;}
+[data-theme="adobe"] .gold-input{color:#9a5020;border-bottom-color:var(--border2);}
+[data-theme="adobe"] .gold-input:focus{border-bottom-color:#9a5020;}
+[data-theme="adobe"] .coll-title{color:#7a3a10;}
+[data-theme="adobe"] .st{color:#7a3a10;}
+[data-theme="adobe"] .clv{color:#9a5020;}
+[data-theme="adobe"] .coll-nav-item.active{background:rgba(154,80,32,.1);color:#7a3a10;border-left-color:#9a5020;}
+[data-theme="adobe"] .tr-outfit-name{color:#7a3a10;}
+[data-theme="adobe"] .inv-group-hdr{color:#9a5020;}
+[data-theme="adobe"] #mo,#mo-rename{--panel:#faf5ec;}
+[data-theme="adobe"] select option{background:#f5eedf;}
+[data-theme="adobe"] #ss{background:#f5eedf;}
+[data-theme="adobe"] .mbtn.br{border-color:#8B5A2B;color:#8B5A2B;}
+[data-theme="adobe"] .mbtn.br.on{background:#8B5A2B;color:#faf5ec;}
+[data-theme="adobe"] .mbtn.si{border-color:#7a7068;color:#7a7068;}
+[data-theme="adobe"] .mbtn.si.on{background:#7a7068;color:#faf5ec;}
+[data-theme="adobe"] .mbtn.go{border-color:#9a7000;color:#9a7000;}
+[data-theme="adobe"] .mbtn.go.on{background:#9a7000;color:#faf5ec;}
+
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:15px;min-height:100vh;}
 
 /* HEADER */
-header{background:#0a0a10;border-bottom:2px solid var(--gold);padding:0 1.5rem;position:sticky;top:0;z-index:100;
+header{background:var(--header-bg);border-bottom:2px solid var(--header-border);padding:0 1.5rem;position:sticky;top:0;z-index:100;
   display:flex;align-items:center;justify-content:space-between;min-height:56px;box-shadow:0 2px 24px rgba(0,0,0,.7);flex-wrap:wrap;gap:.4rem;}
 .brand{font-family:var(--font-d);font-size:1.15rem;font-weight:700;color:var(--straw);letter-spacing:.1em;white-space:nowrap;}
 .brand span{color:var(--accent);}
 .ptc{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
-select,input[type=text],input[type=password]{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+select,input[type=text],input[type=password],input[type=number]{background:var(--panel2);border:1px solid var(--border);color:var(--text);
   font-family:var(--font-b);font-size:14px;padding:5px 9px;border-radius:3px;outline:none;}
 select:focus,input:focus{border-color:var(--gold);}
 select option{background:var(--panel);}
@@ -34,17 +74,41 @@ select option{background:var(--panel);}
 .btn-gold:hover{background:var(--straw);}
 .btn-ghost{background:transparent;border-color:var(--border);color:var(--muted);}
 .btn-ghost:hover{border-color:var(--gold);color:var(--straw);}
+.btn-icon{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);
+  cursor:pointer;padding:5px 9px;font-size:14px;transition:all .15s;line-height:1;}
+.btn-icon:hover{border-color:var(--gold);color:var(--straw);}
+.btn-icon.active{border-color:var(--gold);color:var(--gold);}
 
-/* STICKY TOP BAR */
+/* STICKY BAR */
 #sticky-bar{position:sticky;top:0;z-index:100;}
 
-/* SETTINGS */
-#settings-bar{background:var(--panel);border-bottom:1px solid var(--border2);padding:.6rem 1.5rem;display:none;gap:.8rem;align-items:center;flex-wrap:wrap;}
-#settings-bar.open{display:flex;}
-.sg{display:flex;align-items:center;gap:.4rem;font-size:13px;color:var(--muted);}
-#settings-bar input{width:240px;font-size:13px;}
+/* SETTINGS PANEL */
+#settings-bar{background:var(--panel);border-bottom:1px solid var(--border2);display:none;}
+#settings-bar.open{display:block;}
+.set-sections{display:flex;flex-direction:column;gap:0;}
+.set-section{border-bottom:1px solid var(--border2);padding:.75rem 1.5rem;}
+.set-section:last-child{border-bottom:none;}
+.set-section-title{font-family:var(--font-d);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:.6rem;}
+.set-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;}
+.set-label{font-size:12px;color:var(--muted);white-space:nowrap;min-width:50px;}
+#settings-bar input[type=text],#settings-bar input[type=password]{font-size:13px;}
+#settings-bar input[type=text].wide{width:320px;}
+#settings-bar input[type=text].narrow{width:70px;}
+#settings-bar input[type=text].code{width:90px;text-transform:uppercase;letter-spacing:.12em;}
+.set-status{font-size:11px;color:var(--muted);}
+.set-divider{width:1px;height:24px;background:var(--border2);margin:0 .2rem;}
 
-/* OVERVIEW — sticky below header */
+/* THEME TOGGLE CARDS */
+.theme-cards{display:flex;gap:.5rem;flex-wrap:wrap;}
+.theme-card{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:4px;padding:6px 12px;cursor:pointer;transition:all .15s;
+  font-family:var(--font-d);font-size:.72rem;letter-spacing:.06em;color:var(--muted);user-select:none;}
+.theme-card:hover{border-color:var(--border);color:var(--straw);}
+.theme-card.active{border-color:var(--gold);background:rgba(232,176,32,.08);color:var(--straw);}
+.theme-swatches{display:flex;gap:2px;}
+.theme-swatches span{width:12px;height:12px;border-radius:2px;border:1px solid rgba(128,128,128,.2);}
+
+/* OVERVIEW */
 #overview{background:var(--panel);border-bottom:1px solid var(--border2);padding:.6rem 1.5rem;
   display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.5rem;}
 .sc{background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:.4rem .65rem;text-align:center;}
@@ -53,13 +117,12 @@ select option{background:var(--panel);}
 .sc-gold .sv{color:var(--gold);}
 .pbw{background:var(--panel2);border-radius:2px;height:3px;margin-top:3px;}
 .pbf{height:3px;border-radius:2px;background:var(--accent);transition:width .3s;}
-/* gold input inside stat card */
 .gold-input{width:80px;background:transparent;border:none;border-bottom:1px solid var(--border);
   color:var(--gold);font-family:var(--font-d);font-size:1.15rem;font-weight:600;text-align:center;
   outline:none;padding:0;}
 .gold-input:focus{border-bottom-color:var(--gold);}
 
-/* TABS — pill wrap, fully responsive */
+/* TABS */
 #tabs{background:var(--panel);border-bottom:2px solid var(--border2);
   padding:8px 1.5rem;display:flex;flex-wrap:wrap;gap:5px;}
 .tb{font-family:var(--font-d);font-size:10px;letter-spacing:.06em;font-weight:600;
@@ -70,8 +133,7 @@ select option{background:var(--panel);}
 
 /* MAIN */
 main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
-.tp{display:none;}
-.tp.active{display:block;}
+.tp{display:none;}.tp.active{display:block;}
 
 /* SECTION HEADER */
 .sh{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--border2);padding-bottom:.4rem;margin-bottom:.9rem;margin-top:1.3rem;}
@@ -102,14 +164,14 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .ir:hover{border-color:var(--border2);background:var(--panel2);}
 .ir.on{background:var(--success2);border-color:rgba(58,122,64,.35);}
 .ick{width:15px;height:15px;flex-shrink:0;margin-top:2px;border:1.5px solid var(--border);border-radius:2px;background:var(--panel2);position:relative;}
-.ir.on .ick{background:var(--success);border-color:var(--success);}
-.ir.on .ick::after{content:'';position:absolute;left:2px;top:3px;width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);}
+.ick.on,.ir.on .ick,.cr.on .ick,.pe-item.on .ick,.pe-header.on .ick,.tr-outfit-hdr.on .ick,.tr-row.on .ick{background:var(--success);border-color:var(--success);}
+.ick.on::after,.ir.on .ick::after,.cr.on .ick::after,.pe-item.on .ick::after,.pe-header.on .ick::after,.tr-outfit-hdr.on .ick::after,.tr-row.on .ick::after{content:'';position:absolute;left:2px;top:3px;width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);}
 .in{font-size:13px;color:var(--text);flex:1;line-height:1.3;}
 .ir.on .in{color:var(--muted);}
 .isb{font-size:11px;color:var(--muted2);margin-top:1px;}
 .ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:4px;margin-bottom:.75rem;}
 
-/* CHALLENGE COLLAPSIBLE */
+/* CHALLENGE */
 .coll-hdr{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border2);
   border-radius:4px;padding:8px 12px;cursor:pointer;user-select:none;margin-bottom:4px;transition:background .12s;}
 .coll-hdr:hover{background:var(--panel2);}
@@ -127,8 +189,6 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   border-radius:3px;padding:6px 9px;cursor:pointer;transition:all .12s;user-select:none;margin-bottom:3px;}
 .cr:hover{border-color:var(--border2);}
 .cr.on{background:var(--success2);border-color:rgba(58,122,64,.25);}
-.cr.on .ick{background:var(--success);border-color:var(--success);}
-.cr.on .ick::after{content:'';position:absolute;left:2px;top:3px;width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);}
 .cr.on .crq{color:var(--muted);}
 .clv{font-size:10px;font-family:var(--font-d);color:var(--gold);flex-shrink:0;width:44px;padding-top:2px;}
 .crq{font-size:13px;color:var(--text);}
@@ -150,7 +210,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .mbtn.go{border-color:#ffd700;color:#ffd700;}
 .mbtn.go.on{background:#ffd700;color:#0a0a10;}
 
-/* TRAPPER OUTFIT GROUPS */
+/* TRAPPER */
 .tr-outfit{margin-bottom:4px;}
 .tr-outfit-hdr{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border2);
   border-radius:3px;padding:7px 10px;cursor:pointer;user-select:none;transition:all .12s;}
@@ -160,13 +220,13 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .tr-outfit-prog{font-size:11px;color:var(--muted);}
 .tr-outfit-body{background:var(--bg);border:1px solid var(--border2);border-top:none;
   border-bottom-left-radius:3px;border-bottom-right-radius:3px;padding:5px;}
-/* INV GROUP HEADER */
 .inv-group-hdr{font-family:var(--font-d);font-size:.7rem;letter-spacing:.08em;color:var(--gold);
   padding:5px 4px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;
   border-bottom:1px solid var(--border2);margin-bottom:3px;}
 .inv-group-hdr .coll-arrow{font-size:9px;transition:transform .2s;}
 .inv-group-hdr.open .coll-arrow{transform:rotate(90deg);}
-/* COLLECTIONS TAB */
+
+/* COLLECTIONS */
 .coll-tab-layout{display:grid;grid-template-columns:220px 1fr;gap:1rem;align-items:start;}
 .coll-nav-panel{background:var(--panel);border:1px solid var(--border2);border-radius:6px;overflow:hidden;position:sticky;top:var(--sticky-top,180px);}
 .coll-nav-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;
@@ -179,79 +239,57 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .coll-content-panel{min-width:0;}
 .coll-section{display:none;}
 .coll-section.active{display:block;}
-/* TRAPPER INVENTORY */
-.trapper-layout{display:grid;grid-template-columns:280px 1fr;gap:1rem;align-items:start;}
-.inv-panel{background:var(--panel);border:1px solid var(--border2);border-radius:6px;padding:12px;position:sticky;top:var(--sticky-top,180px);max-height:calc(100vh - var(--sticky-top,180px) - 20px);overflow-y:auto;}
-.inv-title{font-family:var(--font-d);font-size:.75rem;letter-spacing:.09em;color:var(--gold);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border2);}
-.inv-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #1a1428;}
-.inv-item:last-child{border-bottom:none;}
-.inv-name{flex:1;font-size:12px;color:var(--text);}
-.inv-low{color:var(--accent) !important;}
-.inv-counter{display:flex;align-items:center;gap:0;border:1px solid var(--border2);border-radius:3px;
-  overflow:hidden;cursor:pointer;user-select:none;flex-shrink:0;}
-.inv-counter:hover{border-color:var(--border);}
-.inv-minus,.inv-plus{width:20px;height:22px;display:flex;align-items:center;justify-content:center;
-  font-size:14px;color:var(--muted);background:var(--panel2);transition:all .12s;flex-shrink:0;}
-.inv-minus:hover,.inv-plus:hover{background:var(--border2);color:var(--straw);}
-.inv-num{min-width:28px;text-align:center;font-size:13px;color:var(--text);font-family:var(--font-b);
-  background:var(--bg);padding:0 3px;line-height:22px;}
 
-/* TRAPPER CRAFTABLE ROWS */
-.tr-row{background:var(--panel);border:1px solid transparent;border-radius:3px;padding:7px 10px;
-  margin-bottom:3px;cursor:pointer;transition:all .12s;user-select:none;}
-.tr-row:hover{border-color:var(--border2);}
-.tr-row.on{background:var(--success2);border-color:rgba(58,122,64,.35);}
-.tr-row.can{background:var(--can-craft);border-color:var(--can-craft-b);}
-.tr-row.can.on{background:var(--success2);border-color:rgba(58,122,64,.35);}
-.tr-top{display:flex;align-items:center;gap:8px;}
-.tr-name{flex:1;font-size:13px;color:var(--text);}
-.tr-row.on .tr-name{color:var(--muted);}
-.can-badge{font-size:9px;font-family:var(--font-d);letter-spacing:.05em;padding:2px 7px;border-radius:2px;
-  background:var(--can-craft-b);color:#a0d8f0;flex-shrink:0;}
-.tr-mats{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
-.mat-chip{font-size:10px;padding:1px 7px;border-radius:2px;border:1px solid;font-family:var(--font-d);letter-spacing:.03em;}
-.mat-chip.ok{border-color:rgba(42,96,128,.6);color:#7ABCD0;background:rgba(26,46,64,.5);}
-.mat-chip.short{border-color:rgba(160,32,32,.5);color:#E08080;background:rgba(80,16,16,.3);}
+/* CIGARETTE CARDS TABLE */
+.ct{width:100%;border-collapse:collapse;font-size:12px;}
+.ct thead tr{background:var(--panel2);}
+.ct th{font-family:var(--font-d);font-size:.65rem;letter-spacing:.08em;color:var(--muted);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border2);}
+.ct td{padding:5px 8px;border-bottom:1px solid var(--border2);color:var(--text);}
+.ct tr:last-child td{border-bottom:none;}
+.ct tr:hover td{background:var(--panel2);}
+.cn{font-size:12px;}.cloc{font-size:11px;color:var(--muted);}
+.ccc{cursor:pointer;width:32px;text-align:center;}
+.ctr_done td{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted2);}
 
-/* PEARSON SECTION */
-.pe-item{background:var(--panel);border:1px solid transparent;border-radius:4px;padding:8px 10px;margin-bottom:4px;}
+/* PEARSON / CAMP */
+.pe-item{background:var(--panel);border:1px solid transparent;border-radius:3px;margin-bottom:3px;overflow:hidden;transition:border-color .12s;}
 .pe-item:hover{border-color:var(--border2);}
 .pe-item.on{background:var(--success2);border-color:rgba(58,122,64,.3);}
-.pe-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;}
-.pe-name{flex:1;font-size:13px;color:var(--text);font-weight:600;}
-.pe-item.on .pe-name{color:var(--muted);}
-.pe-reqs{display:flex;flex-wrap:wrap;gap:5px;padding-left:23px;}
-.pe-req{display:flex;align-items:center;gap:5px;cursor:pointer;padding:2px 0;}
-.pe-req-name{font-size:12px;color:var(--muted);}
-.pe-req .mb{flex-shrink:0;}
+.pe-header{display:flex;align-items:center;gap:8px;padding:6px 9px;cursor:pointer;}
+.pe-name{font-size:13px;color:var(--text);flex:1;}
+.pe-reqs{display:flex;flex-wrap:wrap;gap:4px;padding:0 9px 6px;}
+.pe-req{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;
+  background:var(--panel2);border:1px solid var(--border2);border-radius:2px;padding:2px 6px;transition:all .12s;}
+.pe-req:hover{border-color:var(--border);color:var(--text);}
+.pe-req-name{font-size:11px;}
 
-/* SATCHEL ROW (Pearson satchels) */
-.sa-row{background:var(--panel);border:1px solid transparent;border-radius:3px;padding:6px 9px;margin-bottom:3px;}
-.sa-row:hover{border-color:var(--border2);}
-.sa-row.on{background:var(--success2);border-color:rgba(58,122,64,.3);}
-.sa-header{display:flex;align-items:center;gap:8px;cursor:pointer;}
-.sa-name{flex:1;font-size:13px;color:var(--text);}
-.sa-row.on .sa-name{color:var(--muted);}
-.sa-mats{padding:5px 0 2px 23px;display:flex;flex-wrap:wrap;gap:5px;}
-.sa-mat{display:flex;align-items:center;gap:4px;cursor:pointer;}
-.sa-mat-name{font-size:11px;color:var(--muted);}
+/* TRAPPER LAYOUT */
+.trapper-layout{display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start;}
+.inv-panel{background:var(--panel);border:1px solid var(--border2);border-radius:4px;padding:.6rem;
+  position:sticky;top:var(--sticky-top,180px);}
+.inv-item{display:flex;align-items:center;justify-content:space-between;padding:3px 4px;font-size:12px;color:var(--text);gap:6px;}
+.inv-name{flex:1;font-size:12px;}
+.inv-counter{display:flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:3px;padding:2px 6px;cursor:pointer;user-select:none;font-family:var(--font-d);font-size:11px;color:var(--straw);}
+.inv-counter:hover{border-color:var(--gold);}
+.inv-minus,.inv-plus{color:var(--muted);font-size:13px;line-height:1;}
+.inv-num{min-width:16px;text-align:center;color:var(--straw);}
+.tr-row{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid transparent;
+  border-radius:3px;padding:5px 8px;margin-bottom:2px;transition:all .12s;}
+.tr-row:hover{border-color:var(--border2);}
+.tr-row.on{background:var(--success2);}
+.tr-name{flex:1;font-size:12px;color:var(--text);}
+.tr-mats{font-size:10px;color:var(--muted);flex-shrink:0;}
+.mbtn-craft{font-size:9px;font-family:var(--font-d);letter-spacing:.04em;padding:2px 7px;border-radius:2px;
+  border:1px solid;cursor:pointer;background:transparent;transition:all .12s;white-space:nowrap;}
+.mbtn-craft.can{background:var(--can-craft);border-color:var(--can-craft-b);color:#7ecfff;}
+.mbtn-craft.crafted{background:var(--success2);border-color:var(--success);color:#7ecf70;}
 
-/* CIG TABLE */
-.ct{width:100%;border-collapse:collapse;margin-bottom:.5rem;font-size:13px;}
-.ct th{font-family:var(--font-d);font-size:10px;letter-spacing:.06em;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border2);text-align:left;}
-.ct td{padding:5px 8px;border-bottom:1px solid #12101a;vertical-align:top;}
-.ct tr:hover td{background:var(--panel2);}
-.ct tr.cdone td{opacity:.4;}
-.cloc{color:var(--muted);font-size:12px;}
-.ccc{width:34px;text-align:center;cursor:pointer;}
-
-/* MODAL */
-#mo,#mo-rename{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;}
-#mo.open,#mo-rename.open{display:flex;}
-#md{background:var(--panel);border:1px solid var(--gold);border-radius:6px;padding:1.75rem;width:360px;max-width:90vw;}
-#md h2{font-family:var(--font-d);font-size:1rem;color:var(--straw);margin-bottom:.9rem;}
-#md input{width:100%;margin-bottom:.9rem;}
-.mdb{display:flex;gap:.5rem;justify-content:flex-end;}
+/* TRAPPER ROW / PIECE */
+.tr-piece{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid transparent;
+  border-radius:2px;padding:4px 8px;margin-bottom:2px;transition:all .12s;}
+.tr-piece:hover{border-color:var(--border2);}
+.tr-piece-name{flex:1;font-size:12px;color:var(--text);}
 
 /* SYNC STATUS */
 #ss{position:fixed;bottom:1.25rem;right:1.25rem;background:var(--panel);border:1px solid var(--border2);
@@ -260,14 +298,24 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 #ss.ok{border-color:var(--success);color:#7ecf70;}
 #ss.err{border-color:var(--accent);color:#f08080;}
 
+/* MODAL */
+#mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+#mo.open{display:flex;}
+#md{background:var(--panel);border:1px solid var(--gold);border-radius:6px;padding:1.75rem;width:380px;max-width:90vw;}
+#md h2{font-family:var(--font-d);font-size:1rem;color:var(--straw);margin-bottom:.75rem;letter-spacing:.06em;}
+#md input{width:100%;margin-bottom:.75rem;}
+.mdb{display:flex;gap:.5rem;justify-content:flex-end;}
+#mo-rename{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:201;align-items:center;justify-content:center;}
+#mo-rename.open{display:flex;}
+
 /* NO PT */
 #nopt{text-align:center;padding:4rem 2rem;display:none;}
 #nopt.vis{display:block;}
 #nopt h2{font-family:var(--font-d);font-size:1.3rem;color:var(--straw);margin-bottom:.6rem;}
 #nopt p{color:var(--muted);margin-bottom:1.25rem;}
 
-@media(max-width:900px){.trapper-layout{grid-template-columns:1fr;}.inv-panel{position:static;}}
-@media(max-width:700px){header{flex-direction:column;align-items:flex-start;padding:.6rem 1rem;min-height:auto;}main{padding:.9rem 1rem;}.mc{width:52px;}#tabs-dropdown{padding:8px 1rem;}}
+@media(max-width:900px){.trapper-layout{grid-template-columns:1fr;}.inv-panel{position:static;}.coll-tab-layout{grid-template-columns:1fr;}}
+@media(max-width:700px){header{flex-direction:column;align-items:flex-start;padding:.6rem 1rem;min-height:auto;}main{padding:.9rem 1rem;}.mc{width:52px;}}
 </style>
 </head>
 <body>
@@ -277,33 +325,101 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <div class="ptc">
     <select id="pts" onchange="switchPT(this.value)"><option value="">— Select Playthrough —</option></select>
     <button class="btn btn-gold" onclick="openMo()">+ New</button>
-    <button class="btn-icon" onclick="toggleSet()" title="Settings" style="background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;padding:5px 9px;font-size:14px;">⚙</button>
-
-
+    <button class="btn-icon" id="gear-btn" onclick="toggleSet()" title="Settings">⚙</button>
   </div>
 </header>
+
+<!-- SETTINGS PANEL -->
 <div id="settings-bar">
-  <div class="sg"><label>Repo:</label><input type="text" id="cr" placeholder="owner/rdr2-tracker" oninput="saveCfg()"/></div>
-  <div class="sg"><label>Branch:</label><input type="text" id="cb" placeholder="main" style="width:70px" oninput="saveCfg()"/></div>
-  <div class="sg"><label>Token:</label><input type="password" id="ct" placeholder="ghp_..." oninput="saveCfg()"/></div>
-  <button class="btn btn-gold" onclick="syncGH()">GitHub Sync</button>
-  <span id="ls" style="font-size:12px;color:var(--muted)"></span>
-  <div class="sg" style="border-left:1px solid var(--border2);padding-left:.8rem;margin-left:.2rem;gap:.4rem;align-items:center;flex-wrap:wrap;">
-    <span style="font-size:10px;color:var(--muted);font-family:var(--font-d);letter-spacing:.05em;white-space:nowrap;">SYNC CODE</span>
-    <input type="text" id="sync-code" placeholder="ABC123" style="width:80px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
-    <button class="btn btn-ghost" onclick="joinSyncCode()" style="font-size:9px;padding:4px 8px;">Join</button>
-    <button class="btn btn-ghost" onclick="createSyncCode()" style="font-size:9px;padding:4px 8px;">New</button>
-    <span id="sync-code-status" style="font-size:11px;color:var(--muted);"></span>
-  </div>
-  <div class="sg" style="border-left:1px solid var(--border2);padding-left:.8rem;gap:.5rem;">
-    <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
-    <label class="btn btn-ghost" style="cursor:pointer">↑ Import CSV<input type="file" accept=".csv" style="display:none" onchange="importCSV(event)"/></label>
-  </div>
-  <div class="sg" style="border-left:1px solid var(--border2);padding-left:.8rem;gap:.5rem;">
-    <button class="btn btn-ghost" onclick="openRenamePT()">✎ Rename</button>
-    <button class="btn btn-ghost" style="border-color:var(--accent);color:var(--accent);" onclick="deletePT()">✕ Delete</button>
+  <div class="set-sections">
+
+    <!-- Theme -->
+    <div class="set-section">
+      <div class="set-section-title">Theme</div>
+      <div class="set-row">
+        <div class="theme-cards">
+          <div class="theme-card active" data-theme="" onclick="selectTheme('')">
+            <div class="theme-swatches">
+              <span style="background:#0E0E14"></span>
+              <span style="background:#E8B020"></span>
+              <span style="background:#C02020"></span>
+              <span style="background:#D4B878"></span>
+            </div>
+            <span>Midnight Frontier</span>
+          </div>
+          <div class="theme-card" data-theme="adobe" onclick="selectTheme('adobe')">
+            <div class="theme-swatches">
+              <span style="background:#faf5ec"></span>
+              <span style="background:#9a5020"></span>
+              <span style="background:#b86030"></span>
+              <span style="background:#7a3a10"></span>
+            </div>
+            <span>Sun-Bleached Adobe</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Google Sheets Sync -->
+    <div class="set-section">
+      <div class="set-section-title">Google Sheets Sync</div>
+      <div class="set-row" style="gap:.5rem;margin-bottom:.4rem;">
+        <span class="set-label">Script URL</span>
+        <input type="text" id="gas-url" class="wide" placeholder="https://script.google.com/macros/s/…/exec" oninput="saveCfg()"/>
+        <button class="btn btn-ghost" onclick="testGasConn()">Test</button>
+        <button class="btn btn-gold" onclick="runGasSync()">↕ Sync</button>
+        <button class="btn btn-ghost" onclick="runGasPull()">↓ Pull</button>
+        <button class="btn btn-ghost" onclick="runGasPush()">↑ Push</button>
+      </div>
+      <div class="set-row">
+        <span id="gas-status" class="set-status"></span>
+      </div>
+    </div>
+
+    <!-- GitHub Sync (legacy) -->
+    <div class="set-section">
+      <div class="set-section-title">GitHub Sync (legacy)</div>
+      <div class="set-row">
+        <span class="set-label">Repo</span>
+        <input type="text" id="cr" placeholder="owner/rdr2-tracker" style="width:200px;" oninput="saveCfg()"/>
+        <span class="set-label">Branch</span>
+        <input type="text" id="cb" placeholder="main" style="width:70px;" oninput="saveCfg()"/>
+        <span class="set-label">Token</span>
+        <input type="password" id="ct" placeholder="ghp_…" style="width:180px;" oninput="saveCfg()"/>
+        <button class="btn btn-ghost" onclick="syncGH()">GitHub Sync</button>
+        <span id="ls" class="set-status"></span>
+      </div>
+    </div>
+
+    <!-- Sync Code -->
+    <div class="set-section">
+      <div class="set-section-title">Device Sync Code</div>
+      <div class="set-row">
+        <input type="text" id="sync-code" placeholder="ABC123" class="code" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+        <button class="btn btn-ghost" onclick="joinSyncCode()">Join</button>
+        <button class="btn btn-ghost" onclick="createSyncCode()">New Code</button>
+        <span id="sync-code-status" class="set-status"></span>
+      </div>
+    </div>
+
+    <!-- Backup / Data -->
+    <div class="set-section">
+      <div class="set-section-title">Backup &amp; Data</div>
+      <div class="set-row">
+        <button class="btn btn-ghost" onclick="exportJSON()">↓ JSON Backup</button>
+        <label class="btn btn-ghost" style="cursor:pointer;">↑ Restore JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"/></label>
+        <div class="set-divider"></div>
+        <button class="btn btn-ghost" onclick="exportCSV()">↓ Export CSV</button>
+        <label class="btn btn-ghost" style="cursor:pointer;">↑ Import CSV<input type="file" accept=".csv" style="display:none" onchange="importCSV(event)"/></label>
+        <div class="set-divider"></div>
+        <button class="btn btn-ghost" onclick="openRenamePT()">✎ Rename PT</button>
+        <button class="btn btn-ghost" style="border-color:var(--accent);color:var(--accent);" onclick="deletePT()">✕ Delete PT</button>
+      </div>
+    </div>
+
   </div>
 </div>
+
 <div id="overview">
   <div class="sc"><div class="sl">Animals</div><div class="sv" id="ov-an">0/—</div><div class="pbw"><div class="pbf" id="pb-an" style="width:0%"></div></div></div>
   <div class="sc"><div class="sl">Plants</div><div class="sv" id="ov-pl">0/—</div><div class="pbw"><div class="pbf" id="pb-pl" style="width:0%"></div></div></div>
@@ -330,22 +446,25 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
   <button class="tb" onclick="showTab('collections',this)">Collections</button>
 </div>
 </div><!-- end sticky-bar -->
+
 <main>
   <div id="nopt" class="vis"><h2>No Playthrough Selected</h2><p>Create or select a playthrough to begin tracking.</p><button class="btn btn-gold" onclick="openMo()">+ Create Playthrough</button></div>
-  <div id="tab-animals"    class="tp active"></div>
-  <div id="tab-plants"     class="tp"></div>
-  <div id="tab-fish"       class="tp"></div>
-  <div id="tab-horses"     class="tp"></div>
-  <div id="tab-weapons"    class="tp"></div>
-  <div id="tab-equip"      class="tp"></div>
-  <div id="tab-trapper"    class="tp"></div>
-  <div id="tab-pearson"    class="tp"></div>
-  <div id="tab-challenges" class="tp"></div>
-  <div id="tab-story"      class="tp"></div>
-  <div id="tab-achieve"    class="tp"></div>
+  <div id="tab-animals"     class="tp active"></div>
+  <div id="tab-plants"      class="tp"></div>
+  <div id="tab-fish"        class="tp"></div>
+  <div id="tab-horses"      class="tp"></div>
+  <div id="tab-weapons"     class="tp"></div>
+  <div id="tab-equip"       class="tp"></div>
+  <div id="tab-trapper"     class="tp"></div>
+  <div id="tab-pearson"     class="tp"></div>
+  <div id="tab-challenges"  class="tp"></div>
+  <div id="tab-story"       class="tp"></div>
+  <div id="tab-achieve"     class="tp"></div>
   <div id="tab-collections" class="tp"></div>
 </main>
-<div id="mo-rename" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:201;align-items:center;justify-content:center;">
+
+<!-- Rename Modal -->
+<div id="mo-rename">
   <div style="background:var(--panel);border:1px solid var(--gold);border-radius:6px;padding:1.75rem;width:360px;max-width:90vw;">
     <h2 style="font-family:var(--font-d);font-size:1rem;color:var(--straw);margin-bottom:.9rem;">Rename Playthrough</h2>
     <input type="text" id="rename-input" style="width:100%;margin-bottom:.9rem;" maxlength="60" onkeydown="if(event.key==='Enter')confirmRename()"/>
@@ -355,11 +474,14 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
     </div>
   </div>
 </div>
+
+<!-- New Playthrough Modal -->
 <div id="mo"><div id="md">
   <h2>New Playthrough</h2>
   <input type="text" id="pti" placeholder="e.g. Honorable Arthur, 100% Run…" maxlength="60" onkeydown="if(event.key==='Enter')confPT()"/>
   <div class="mdb"><button class="btn btn-ghost" onclick="closeMo()">Cancel</button><button class="btn btn-gold" onclick="confPT()">Create</button></div>
 </div></div>
+
 <div id="ss"></div>
 <script src="rdr2-data.js"></script>
 <script src="rdr2-app.js"></script>
