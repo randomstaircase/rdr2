@@ -1468,11 +1468,25 @@ function renderAllChecks() {
     document.getElementById(`mr_${hmId}`)?.classList.toggle('done', on);
   });
 
-  // trapper
+  // trapper pieces
   TR.forEach((t,i) => {
     const on = !!d[`tr_${i}`];
     document.getElementById(`tr_${i}`)?.classList.toggle('on', on);
     document.getElementById(`ick_tr_${i}`)?.classList.toggle('on', on);
+  });
+
+  // legendary mat toggles — must restore here because buildTrapper runs before pt is set
+  TR_MATS_LEGENDARY.forEach(mat => {
+    const have = getInv(mat) > 0;
+    const mb = document.getElementById('leg-mb-' + slug(mat));
+    const nm = document.getElementById('inv-name-' + slug(mat));
+    if (mb) mb.classList.toggle('on', have);
+    if (nm) nm.classList.toggle('inv-have', have);
+  });
+  // normal mat counters
+  TR_MATS_ANIMALS.concat(TR_MATS_FEATHERS).forEach(mat => {
+    const el = document.getElementById('inv-num-' + slug(mat));
+    if (el) el.textContent = getInv(mat);
   });
   refreshTrapperCan();
 
