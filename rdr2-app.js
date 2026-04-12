@@ -278,99 +278,154 @@ function decodeKey(rawKey) {
   return null; // unknown key — skip
 }
 
-function dbToRows() {
+async function testGasConn() {
+  setGasStatus('Testing connection…');
+  try {
+    const data = await gasGet('ping', {});
+    setGasStatus('✓ ' + (data.msg || 'Connected') + ' — ' + (data.tabs||0) + ' playthrough tab(s) in Sheet.', 'ok');
+  } catch(e) { setGasStatus('✗ ' + e.message, 'err'); }
+}
+
+// ── Build rows for one playthrough ──
+function ptToRows(ptName, ptData) {
   const rows = [];
-  Object.entries(db.playthroughs || {}).forEach(([ptName, ptData]) => {
-    Object.entries(ptData).forEach(([rawKey, val]) => {
-      if (!val && val !== 0) return; // skip false/null/undefined
-      const label = decodeKey(rawKey);
-      if (!label) return; // skip unrecognised keys
-      rows.push({
-        pt:       ptName,
-        category: label.category,
-        item:     label.item,
-        action:   label.action,
-        val:      val === true ? '✓' : String(val),
-        // keep raw key for round-trip restore
-        _raw: rawKey,
-        _rawVal: JSON.stringify(val),
-      });
+  Object.entries(ptData || {}).forEach(([rawKey, val]) => {
+    if (!val && val !== 0) return;
+    const label = decodeKey(rawKey);
+    if (!label) return;
+    rows.push({
+      rawKey,
+      category: label.category,
+      item:     label.item,
+      action:   label.action,
+      val:      val === true ? '✓' : String(val),
     });
   });
-  // Gold
-  if (db.gold) rows.push({ pt:'__meta__', category:'Meta', item:'Gold Balance', action:'VALUE', val: String(db.gold), _raw:'gold', _rawVal: JSON.stringify(db.gold) });
   return rows;
 }
 
-function rowsToDb(rows) {
-  const newDb = { playthroughs:{}, inventory: db.inventory || {}, gold:0 };
-  rows.forEach(r => {
-    try {
-      if (r.pt === '__meta__') {
-        if (r._raw === 'gold' || r.item === 'Gold Balance') newDb.gold = parseFloat(r._rawVal || r.val) || 0;
-        return;
-      }
-      if (!newDb.playthroughs[r.pt]) newDb.playthroughs[r.pt] = {};
-      // Use raw key if available (reliable), else skip (can't restore without it)
-      if (r._raw) {
-        try { newDb.playthroughs[r.pt][r._raw] = JSON.parse(r._rawVal); }
-        catch(e) { newDb.playthroughs[r.pt][r._raw] = r._rawVal; }
-      }
-    } catch(e) {}
+// ── Build meta rows (gold, inventory counts) ──
+function metaToRows() {
+  const rows = [];
+  if (db.gold) rows.push({ rawKey:'gold', category:'Meta', item:'Gold Balance', action:'VALUE', val: String(db.gold) });
+  // Inventory counters
+  Object.entries(db.inventory || {}).forEach(([mat, qty]) => {
+    if (!qty && qty !== 0) return;
+    rows.push({ rawKey:'inv_' + mat, category:'Inventory', item: mat, action:'QTY', val: String(qty) });
   });
+  return rows;
+}
+
+// ── Restore db from pull response ──
+function pullToDb(data) {
+  const newDb = { playthroughs:{}, inventory: db.inventory || {}, gold: db.gold || 0 };
+
+  // Restore each playthrough tab
+  Object.entries(data.playthroughs || {}).forEach(([ptName, rows]) => {
+    const ptData = {};
+    rows.forEach(r => {
+      if (!r.rawKey) return;
+      if      (r.val === '✓' || r.val === 'true')  ptData[r.rawKey] = true;
+      else if (r.val === 'false' || r.val === '')   return; // skip falsy
+      else if (!isNaN(r.val) && r.val !== '')       ptData[r.rawKey] = Number(r.val);
+      else                                           ptData[r.rawKey] = r.val;
+    });
+    if (Object.keys(ptData).length > 0) newDb.playthroughs[ptName] = ptData;
+  });
+
+  // Restore meta
+  (data.meta || []).forEach(r => {
+    if (r.rawKey === 'gold') newDb.gold = parseFloat(r.val) || 0;
+    else if (r.rawKey && r.rawKey.startsWith('inv_')) {
+      const mat = r.rawKey.slice(4);
+      newDb.inventory[mat] = parseInt(r.val) || 0;
+    }
+  });
+
   return newDb;
 }
-async function testGasConn() {
-  setGasStatus('Testing…');
-  try {
-    const data = await gasGet('ping', {});
-    setGasStatus('✓ Connected — ' + (data.msg||'OK'), 'ok');
-  } catch(e) { setGasStatus('✗ ' + e.message, 'err'); }
-}
-async function runGasPull() {
-  setGasStatus('Pulling from Sheet…');
-  try {
-    const data = await gasGet('pull', {});
-    if (!data || !Array.isArray(data.rows)) { setGasStatus('No data returned.', 'err'); return; }
-    const merged = rowsToDb(data.rows);
-    merged.inventory = merged.inventory || db.inventory || {};
-    db = merged;
-    saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
-    if (pt) renderAllChecks();
-    setGasStatus('✓ Pull complete — ' + data.rows.length + ' entries.', 'ok');
-    showSS('Pulled from Sheet', 'ok');
-  } catch(e) { setGasStatus('✗ Pull failed: ' + e.message, 'err'); }
-}
+
+// ── Push: clear + rewrite each playthrough tab ──
 async function runGasPush() {
+  if (!getGasUrl()) return;
   setGasStatus('Pushing to Sheet…');
   try {
-    const rows = dbToRows();
-    const batchSize = 200;
-    for (let i = 0; i < rows.length; i += batchSize) {
-      setGasStatus('Pushing ' + Math.min(i+batchSize,rows.length) + '/' + rows.length + '…');
-      await gasPost({ action:'sync', rows: rows.slice(i, i+batchSize) });
-      if (i+batchSize < rows.length) await new Promise(r => setTimeout(r, 400));
+    const pts = Object.entries(db.playthroughs || {});
+    let done = 0;
+    for (const [ptName, ptData] of pts) {
+      setGasStatus('Pushing "' + ptName + '" (' + (++done) + '/' + pts.length + ')…');
+      const rows = ptToRows(ptName, ptData);
+      await gasPost({ action:'pushPlaythrough', pt: ptName, rows });
     }
-    setGasStatus('✓ Pushed ' + rows.length + ' entries.', 'ok');
+    // Push meta (gold, inventory)
+    await gasPost({ action:'pushMeta', rows: metaToRows() });
+    setGasStatus('✓ Pushed ' + pts.length + ' playthrough(s) to Sheet.', 'ok');
     showSS('Pushed to Sheet', 'ok');
   } catch(e) { setGasStatus('✗ Push failed: ' + e.message, 'err'); }
 }
-async function runGasSync() {
-  setGasStatus('Step 1/2: Pulling…');
+
+// ── Pull: load all tabs from Sheet into db ──
+async function runGasPull() {
+  if (!getGasUrl()) return;
+  setGasStatus('Pulling from Sheet…');
   try {
     const data = await gasGet('pull', {});
-    if (data && Array.isArray(data.rows) && data.rows.length > 0) {
-      const remote = rowsToDb(data.rows);
-      remote.inventory = remote.inventory || db.inventory || {};
-      db = remote;
+    if (!data || !data.playthroughs) { setGasStatus('No data in Sheet yet — push first.', 'err'); return; }
+    const ptCount = Object.keys(data.playthroughs).length;
+    if (ptCount === 0) { setGasStatus('Sheet is empty — push your data first.', 'err'); return; }
+    db = pullToDb(data);
+    saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
+    if (pt && db.playthroughs[pt]) renderAllChecks();
+    setGasStatus('✓ Pulled ' + ptCount + ' playthrough(s) from Sheet.', 'ok');
+    showSS('Pulled from Sheet', 'ok');
+  } catch(e) { setGasStatus('✗ Pull failed: ' + e.message, 'err'); }
+}
+
+// ── Sync: pull remote → merge → push everything back ──
+async function runGasSync() {
+  if (!getGasUrl()) return;
+  setGasStatus('Step 1/2: Pulling from Sheet…');
+  try {
+    // Step 1: Pull remote
+    const data = await gasGet('pull', {});
+    const remotePts = data && data.playthroughs ? data.playthroughs : {};
+    const remotePtCount = Object.keys(remotePts).length;
+
+    if (remotePtCount > 0) {
+      const remote = pullToDb(data);
+      // Merge: local playthroughs take priority, but pull in any
+      // playthroughs that exist remotely but not locally
+      Object.entries(remote.playthroughs).forEach(([ptName, ptData]) => {
+        if (!db.playthroughs[ptName]) {
+          // New playthrough from remote — add it
+          db.playthroughs[ptName] = ptData;
+        } else {
+          // Merge: combine keys, local wins on conflicts
+          db.playthroughs[ptName] = Object.assign({}, ptData, db.playthroughs[ptName]);
+        }
+      });
+      // Take remote gold if local has none
+      if (!db.gold && remote.gold) db.gold = remote.gold;
       saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
-      if (pt) renderAllChecks();
-      setGasStatus('Step 2/2: Pushing…');
+      if (pt && db.playthroughs[pt]) renderAllChecks();
+      setGasStatus('Step 2/2: Pushing merged data…');
+    } else {
+      setGasStatus('Step 2/2: Sheet empty — pushing local data…');
     }
+
+    // Step 2: Push everything (clear + rewrite all tabs)
     await runGasPush();
-    setGasStatus('✓ Sync complete!', 'ok');
+    setGasStatus('✓ Sync complete! Sheet has one tab per playthrough.', 'ok');
     showSS('Sync complete', 'ok');
   } catch(e) { setGasStatus('✗ Sync failed: ' + e.message, 'err'); }
+}
+
+// ── Delete playthrough from Sheet when deleted locally ──
+async function deletePlaythroughFromSheet(ptName) {
+  if (!getGasUrl()) return;
+  try {
+    await gasPost({ action:'deletePlaythrough', pt: ptName });
+  } catch(e) { /* silent — deletion is best-effort */ }
 }
 
 // ═══════════════════ JSON BACKUP ═══════════════════
@@ -492,12 +547,15 @@ function confirmRename() {
 function deletePT() {
   if (!pt) { alert('Select a playthrough first.'); return; }
   if (!confirm('Delete "' + pt + '"? This cannot be undone.')) return;
+  const deleted = pt;
   delete db.playthroughs[pt];
   pt = null;
   renderPTSel();
   document.getElementById('pts').value = '';
   switchPT('');
-  saveLocal(); syncGH();
+  saveLocal();
+  // Remove the Sheet tab for this playthrough
+  deletePlaythroughFromSheet(deleted);
 }
 function confPT() {
   const name = document.getElementById('pti').value.trim();
