@@ -797,7 +797,9 @@ function buildTrapper() {
       const can = false;
       const chips = pmats.map(([m,q]) => {
         const have = getInv(m);
-        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_' + oi + '_' + pi + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
+        const leg = isLegendaryMat(m);
+        const label = leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_' + oi + '_' + pi + '_' + slug(m) + '">' + label + '</span>';
       }).join('');
       const badge = '<span class="can-badge" id="can_' + oi + '_' + pi + '" style="display:none"></span>';
       itemHtml += '<div class="tr-row" id="tr_' + oi + '_' + pi + '" onclick="toggleTrapperPiece(' + oi + ',' + pi + ')">' +
@@ -820,7 +822,9 @@ function buildTrapper() {
       const can = false;      // filled by refreshTrapperCan
       const chips = t[2].map(([m,q]) => {
         const have = getInv(m);
-        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_tri_' + i + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
+        const leg = isLegendaryMat(m);
+        const label = leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+        return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_tri_' + i + '_' + slug(m) + '">' + label + '</span>';
       }).join('');
       const badge = '<span class="can-badge" id="can_tri_' + i + '" style="display:none"></span>';
       itemHtml += '<div class="tr-row" id="tri_row_' + i + '" onclick="toggleTrapperItem(' + i + ')">' +
@@ -845,8 +849,8 @@ function toggleTrOutfit(oi) {
     setD('trp_' + oi + '_' + pi, nowOn ? true : null);
     document.getElementById('tr_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
     document.getElementById('ick_trp_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
-    // Adjust inventory: crafting deducts, uncrafting restores
-    pmats.forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
+    // Deduct inventory on craft only (no restore on uncraft)
+    adjustInvForCraft(pmats, nowOn);
   });
   checkOutfitDone(oi);
   refreshTrapperCan();
@@ -861,8 +865,9 @@ function toggleTrapperPiece(oi, pi) {
   document.getElementById('tr_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
   document.getElementById('ick_trp_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
   const [,pmats] = TR_OUTFITS[oi].pieces[pi];
-  pmats.forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
+  adjustInvForCraft(pmats, nowOn); // deduct on craft only; no restore on uncraft
   checkOutfitDone(oi);
+  refreshTrapperCan();
   updateOverview();
 }
 
@@ -885,11 +890,25 @@ function toggleTrapperItem(i) {
   setD(id, nowOn ? true : null);
   document.getElementById('tri_row_' + i)?.classList.toggle('on', nowOn);
   document.getElementById('ick_tri_' + i)?.classList.toggle('on', nowOn);
-  TR_ITEMS[i][2].forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
+  adjustInvForCraft(TR_ITEMS[i][2], nowOn); // deduct on craft only
   refreshTrapperCan();
   updateOverview();
 }
 
+
+// Returns true if mat is a legendary toggle (not a consumable counter)
+function isLegendaryMat(mat) {
+  return TR_MATS_LEGENDARY.includes(mat);
+}
+
+// Adjust inventory for a craft action — legendary mats are never deducted
+function adjustInvForCraft(mats, crafting) {
+  if (!crafting) return; // never restore on uncraft — materials are spent
+  mats.forEach(([m, q]) => {
+    if (isLegendaryMat(m)) return; // legendary = toggle only, not consumed
+    bumpInv(m, -q); // deduct on craft only
+  });
+}
 
 function canCraft(i) {
   return TR_ITEMS[i] && TR_ITEMS[i][2].every(([m,q]) => getInv(m) >= q);
@@ -929,7 +948,12 @@ function refreshTrapperCan() {
       }
       pmats.forEach(([m,q]) => {
         const chip = document.getElementById('chip_' + oi + '_' + pi + '_' + slug(m));
-        if (chip) { const have=getInv(m); chip.className='mat-chip '+(have>=q?'ok':'short'); chip.textContent=m+' ('+have+'/'+q+')'; }
+        if (chip) {
+          const have=getInv(m);
+          const leg=isLegendaryMat(m);
+          chip.className='mat-chip '+(have>=q?'ok':'short');
+          chip.textContent=leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+        }
       });
     });
   });
@@ -952,7 +976,12 @@ function refreshTrapperCan() {
     }
     t[2].forEach(([m,q]) => {
       const chip = document.getElementById('chip_tri_'+i+'_'+slug(m));
-      if (chip) { const have=getInv(m); chip.className='mat-chip '+(have>=q?'ok':'short'); chip.textContent=m+' ('+have+'/'+q+')'; }
+      if (chip) {
+        const have=getInv(m);
+        const leg=isLegendaryMat(m);
+        chip.className='mat-chip '+(have>=q?'ok':'short');
+        chip.textContent=leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+      }
     });
   });
   TR_MATS.forEach(mat => {
@@ -1405,8 +1434,8 @@ function setMedal(id, medal) {
 function renderAllChecks() {
   const d = D();
 
-  // simple rows
-  document.querySelectorAll('.ir').forEach(row => {
+  // simple rows + challenge rows (both use id="ir_*" pattern with ick_* checkmark)
+  document.querySelectorAll('.ir, .cr').forEach(row => {
     const id = row.id.replace('ir_','');
     const on = !!d[id];
     row.classList.toggle('on', on);
