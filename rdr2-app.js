@@ -12,7 +12,7 @@ function setD(id, val) {
 }
 
 // Inventory is global (not per-playthrough)
-function getInv(mat) { return parseInt(db.inventory[mat] || 0); }
+function getInv(mat) { return parseInt((pt ? D()['inv_'+mat] : db.inventory[mat]) || 0); }
 function setInv(mat, val) {
   db.inventory[mat] = Math.max(0, parseInt(val) || 0);
   saveLocal(); debouncedSync();
@@ -20,12 +20,11 @@ function setInv(mat, val) {
 }
 
 function bumpInv(mat, delta) {
-  if (!pt && delta > 0) {}  // allow inventory changes without playthrough
+  if (!pt) { alert('Select a playthrough first.'); return; }
   const newVal = Math.max(0, getInv(mat) + delta);
-  db.inventory[mat] = newVal;
+  setD('inv_' + mat, newVal || null);
   const numEl = document.getElementById('inv-num-' + slug(mat));
   if (numEl) numEl.textContent = newVal;
-  saveLocal(); debouncedSync();
   refreshTrapperCan();
 }
 
@@ -77,9 +76,7 @@ function joinSyncCode() {
     try {
       db = JSON.parse(stored);
       if (!db.inventory) db.inventory = {};
-      if (db.gold === undefined) db.gold = 0;
-      loadGold();
-      renderPTSel();
+          renderPTSel();
       buildAllTabs();
       if (pt) renderAllChecks();
       setSyncStatus('Joined code ' + code + ' — data loaded ✓', 'ok');
@@ -273,8 +270,8 @@ function decodeKey(rawKey) {
     const item = TR_ITEMS[+m[1]]; if (!item) return null;
     return { category:'Trapper - ' + item[0], item: item[1], action:'CRAFTED' };
   }
-  // Gold
-  if (rawKey === 'gold') return { category:'Meta', item:'Gold Balance', action:'VALUE' };
+  // Inventory (per-playthrough)
+  if ((m = rawKey.match(/^inv_(.+)$/))) return { category:'Inventory', item: m[1], action:'QTY' };
   return null; // unknown key — skip
 }
 
@@ -304,21 +301,11 @@ function ptToRows(ptName, ptData) {
   return rows;
 }
 
-// ── Build meta rows (gold, inventory counts) ──
-function metaToRows() {
-  const rows = [];
-  if (db.gold) rows.push({ rawKey:'gold', category:'Meta', item:'Gold Balance', action:'VALUE', val: String(db.gold) });
-  // Inventory counters
-  Object.entries(db.inventory || {}).forEach(([mat, qty]) => {
-    if (!qty && qty !== 0) return;
-    rows.push({ rawKey:'inv_' + mat, category:'Inventory', item: mat, action:'QTY', val: String(qty) });
-  });
-  return rows;
-}
+function metaToRows() { return []; } // meta is empty — gold removed, inventory is per-pt
 
 // ── Restore db from pull response ──
 function pullToDb(data) {
-  const newDb = { playthroughs:{}, inventory: db.inventory || {}, gold: db.gold || 0 };
+  const newDb = { playthroughs:{}, inventory: {} };
 
   // Restore each playthrough tab
   Object.entries(data.playthroughs || {}).forEach(([ptName, rows]) => {
@@ -333,13 +320,9 @@ function pullToDb(data) {
     if (Object.keys(ptData).length > 0) newDb.playthroughs[ptName] = ptData;
   });
 
-  // Restore meta
+  // Restore meta (gold only — inventory restored via pt data naturally)
   (data.meta || []).forEach(r => {
     if (r.rawKey === 'gold') newDb.gold = parseFloat(r.val) || 0;
-    else if (r.rawKey && r.rawKey.startsWith('inv_')) {
-      const mat = r.rawKey.slice(4);
-      newDb.inventory[mat] = parseInt(r.val) || 0;
-    }
   });
 
   return newDb;
@@ -374,7 +357,7 @@ async function runGasPull() {
     const ptCount = Object.keys(data.playthroughs).length;
     if (ptCount === 0) { setGasStatus('Sheet is empty — push your data first.', 'err'); return; }
     db = pullToDb(data);
-    saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
+    saveLocal(); renderPTSel(); buildAllTabs();
     if (pt && db.playthroughs[pt]) renderAllChecks();
     setGasStatus('✓ Pulled ' + ptCount + ' playthrough(s) from Sheet.', 'ok');
     showSS('Pulled from Sheet', 'ok');
@@ -405,8 +388,7 @@ async function runGasSync() {
         }
       });
       // Take remote gold if local has none
-      if (!db.gold && remote.gold) db.gold = remote.gold;
-      saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
+      saveLocal(); renderPTSel(); buildAllTabs();
       if (pt && db.playthroughs[pt]) renderAllChecks();
       setGasStatus('Step 2/2: Pushing merged data…');
     } else {
@@ -447,8 +429,7 @@ function importJSON(event) {
       if (!confirm('This will overwrite ALL current data. Continue?')) return;
       db = parsed;
       if (!db.inventory) db.inventory = {};
-      if (db.gold === undefined) db.gold = 0;
-      saveLocal(); loadGold(); renderPTSel(); buildAllTabs();
+      saveLocal(); renderPTSel(); buildAllTabs();
       if (pt && db.playthroughs[pt]) renderAllChecks();
       showSS('JSON backup restored', 'ok');
     } catch(err) { showSS('Restore failed: ' + err.message, 'err'); }
@@ -458,14 +439,7 @@ function importJSON(event) {
 }
 
 // ═══════════════════ GOLD ═══════════════════
-function saveGold(val) {
-  db.gold = parseFloat(val) || 0;
-  saveLocal(); debouncedSync();
-}
-function loadGold() {
-  const el = document.getElementById('gold-val');
-  if (el) el.value = (db.gold !== undefined) ? db.gold : '';
-}
+
 
 // ═══════════════════ INIT ═══════════════════
 async function init() {
@@ -476,8 +450,6 @@ async function init() {
   if (cfg.repo && cfg.token) await loadFromGH();
   else { const l = localStorage.getItem('rdr2_db'); if (l) try { db = JSON.parse(l); } catch(e){} }
   if (!db.inventory) db.inventory = {};
-  if (db.gold === undefined) db.gold = 0;
-  loadGold();
   applyTheme();
   const gasUrl=localStorage.getItem('rdr2_gas_url')||''; const gasEl=document.getElementById('gas-url'); if(gasEl&&gasUrl)gasEl.value=gasUrl;
   // Load sync code if previously set
@@ -564,7 +536,7 @@ function confPT() {
   db.playthroughs[name] = {};
   closeMo(); renderPTSel();
   document.getElementById('pts').value = name;
-  switchPT(name); saveLocal(); syncGH();
+  switchPT(name); saveLocal();
 }
 
 // ═══════════════════ BUILD TABS ═══════════════════
@@ -925,14 +897,14 @@ function canCraft(i) {
 }
 
 function toggleLegMat(mat) {
+  if (!pt) { alert('Select a playthrough first.'); return; }
   const cur = getInv(mat);
   const nw = cur > 0 ? 0 : 1;
-  db.inventory[mat] = nw;
+  setD('inv_' + mat, nw || null);
   const mb = document.getElementById('leg-mb-' + slug(mat));
   const nm = document.getElementById('inv-name-' + slug(mat));
   if (mb) mb.classList.toggle('on', nw > 0);
   if (nm) nm.style.color = nw > 0 ? 'var(--straw)' : '';
-  saveLocal(); debouncedSync();
   refreshTrapperCan();
 }
 
@@ -1690,8 +1662,7 @@ async function loadFromGH(){
     if(!db.inventory)db.inventory={};
     localStorage.setItem('rdr2_sha',json.sha);
     if (!db.inventory) db.inventory = {};
-    if (db.gold === undefined) db.gold = 0;
-    saveLocal(); loadGold();
+      saveLocal();
     showSS('Loaded ✓','ok');
     setTxt('ls','Last sync: '+new Date().toLocaleTimeString());
   }catch(e){showSS('Load failed: '+e.message,'err');}
@@ -1743,7 +1714,7 @@ function exportCSV(){
   Object.entries(ST).forEach(([ch,ms])=>ms.forEach((m,i)=>rows.push([pt,`Story-${ch}`,m,'medal',d[`st_${slug(ch)}_${i}`]||'none'])));
   Object.entries(CIG).forEach(([set,{cards}])=>cards.forEach(([name,,loc],i)=>rows.push([pt,`Cig-${set}`,name,loc,d[`cig_${slug(set)}_${i}`]?'Yes':'No'])));
   // Inventory
-  TR_MATS.forEach(mat=>rows.push(['__inventory__','Inventory',mat,'count',getInv(mat)]));
+  TR_MATS.forEach(mat=>{const v=getInv(mat);if(v)rows.push([pt,'Inventory',mat,'count',v]);});
   const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
@@ -1762,7 +1733,7 @@ function importCSV(e){
         if(!cols||cols.length<5)return;
         const clean=c=>c.trim().replace(/^"|"$/g,'').replace(/""/g,'"');
         const [p,section,item,field,val]=cols.map(clean);
-        if(p==='__inventory__'&&section==='Inventory'){setInv(item,parseInt(val)||0);return;}
+        if(section==='Inventory'&&item){setD('inv_'+item,(parseInt(val)||0)||null);return;}
         if(!p)return;
         ptName=p;
         if(!db.playthroughs[p])db.playthroughs[p]={};
