@@ -756,8 +756,8 @@ function buildTrapper() {
         // Legendary: toggle (hunted or not)
         const have = getInv(mat) > 0;
         h += '<div class="inv-item" style="cursor:pointer;" onclick="toggleLegMat(\'' + mat + '\')">' +
-          '<span class="inv-name" id="inv-name-' + slug(mat) + '" style="' + (have ? 'color:var(--straw)' : '') + '">' + mat + '</span>' +
-          '<div class="mb' + (have ? ' on' : '') + '" id="leg-mb-' + slug(mat) + '" style="flex-shrink:0;width:14px;height:14px;border:1.5px solid var(--border);border-radius:2px;background:var(--panel2);position:relative;"></div>' +
+          '<span class="inv-name' + (have ? ' inv-have' : '') + '" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
+          '<div class="mb' + (have ? ' on' : '') + '" id="leg-mb-' + slug(mat) + '"></div>' +
           '</div>';
       } else {
         const v = getInv(mat);
@@ -922,7 +922,7 @@ function toggleLegMat(mat) {
   const mb = document.getElementById('leg-mb-' + slug(mat));
   const nm = document.getElementById('inv-name-' + slug(mat));
   if (mb) mb.classList.toggle('on', nw > 0);
-  if (nm) nm.style.color = nw > 0 ? 'var(--straw)' : '';
+  if (nm) nm.classList.toggle('inv-have', nw > 0);
   refreshTrapperCan();
 }
 
