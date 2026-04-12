@@ -45,6 +45,7 @@
 [data-theme="adobe"] #mo,#mo-rename{--panel:#faf5ec;}
 [data-theme="adobe"] select option{background:#f5eedf;}
 [data-theme="adobe"] #ss{background:#f5eedf;}
+[data-theme="adobe"] .can-badge.can{background:rgba(154,80,32,.1);border-color:rgba(154,80,32,.4);color:#9a5020;}
 [data-theme="adobe"] .mbtn.br{border-color:#8B5A2B;color:#8B5A2B;}
 [data-theme="adobe"] .mbtn.br.on{background:#8B5A2B;color:#faf5ec;}
 [data-theme="adobe"] .mbtn.si{border-color:#7a7068;color:#7a7068;}
@@ -266,12 +267,22 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .inv-counter:hover{border-color:var(--gold);}
 .inv-minus,.inv-plus{color:var(--muted);font-size:13px;line-height:1;}
 .inv-num{min-width:16px;text-align:center;color:var(--straw);}
-.tr-row{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid transparent;
-  border-radius:3px;padding:5px 8px;margin-bottom:2px;transition:all .12s;}
+.tr-row{display:flex;flex-direction:column;background:var(--panel);border:1px solid transparent;
+  border-radius:3px;padding:6px 8px;margin-bottom:2px;transition:all .12s;cursor:pointer;}
 .tr-row:hover{border-color:var(--border2);}
 .tr-row.on{background:var(--success2);}
+.tr-top{display:flex;align-items:center;gap:6px;}
 .tr-name{flex:1;font-size:12px;color:var(--text);}
-.tr-mats{font-size:10px;color:var(--muted);flex-shrink:0;}
+.tr-mats{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;padding-left:21px;}
+.mat-chip{font-size:10px;padding:1px 6px;border-radius:3px;border:1px solid var(--border2);
+  color:var(--muted);background:var(--panel2);white-space:nowrap;}
+.mat-chip.ok{border-color:rgba(58,122,64,.4);color:#7ecf70;background:rgba(58,122,64,.08);}
+.mat-chip.short{border-color:rgba(192,64,32,.4);color:#f08060;background:rgba(192,64,32,.08);}
+.can-badge{display:inline-block;font-family:var(--font-d);font-size:9px;font-weight:600;
+  letter-spacing:.06em;padding:1px 6px;border-radius:3px;border:1px solid;flex-shrink:0;white-space:nowrap;}
+.can-badge.crafted{background:rgba(58,122,64,.15);border-color:rgba(58,122,64,.5);color:#7ecf70;}
+.can-badge.can{background:rgba(232,176,32,.12);border-color:rgba(232,176,32,.5);color:var(--gold);}
+.inv-low{color:var(--accent)!important;}
 .mbtn-craft{font-size:9px;font-family:var(--font-d);letter-spacing:.04em;padding:2px 7px;border-radius:2px;
   border:1px solid;cursor:pointer;background:transparent;transition:all .12s;white-space:nowrap;}
 .mbtn-craft.can{background:var(--can-craft);border-color:var(--can-craft-b);color:#7ecfff;}
