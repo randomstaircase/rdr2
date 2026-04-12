@@ -799,12 +799,9 @@ function buildTrapper() {
         const have = getInv(m);
         return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_' + oi + '_' + pi + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
       }).join('');
-      let badge = '';
-      if (crafted) badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '" style="background:var(--success);color:#d0ffd8;">CRAFTED</div>';
-      else if (can) badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '">CAN CRAFT</div>';
-      else badge = '<div class="can-badge" id="can_' + oi + '_' + pi + '" style="display:none"></div>';
-      itemHtml += '<div class="tr-row' + (crafted?' on':'') + (can&&!crafted?' can':'') + '" id="tr_' + oi + '_' + pi + '" onclick="toggleTrapperPiece(' + oi + ',' + pi + ')">' +
-        '<div class="tr-top"><div class="ick' + (crafted?' on':'') + '" id="ick_trp_' + oi + '_' + pi + '"></div>' +
+      const badge = '<span class="can-badge" id="can_' + oi + '_' + pi + '" style="display:none"></span>';
+      itemHtml += '<div class="tr-row" id="tr_' + oi + '_' + pi + '" onclick="toggleTrapperPiece(' + oi + ',' + pi + ')">' +
+        '<div class="tr-top"><div class="ick" id="ick_trp_' + oi + '_' + pi + '"></div>' +
         '<div class="tr-name">' + pname + '</div>' + badge + '</div>' +
         '<div class="tr-mats">' + chips + '</div></div>';
     });
@@ -825,12 +822,9 @@ function buildTrapper() {
         const have = getInv(m);
         return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_tri_' + i + '_' + slug(m) + '">' + m + ' (' + have + '/' + q + ')</span>';
       }).join('');
-      let badge = '';
-      if (crafted) badge = '<div class="can-badge" id="can_tri_' + i + '" style="background:var(--success);color:#d0ffd8;">CRAFTED</div>';
-      else if (can) badge = '<div class="can-badge" id="can_tri_' + i + '">CAN CRAFT</div>';
-      else badge = '<div class="can-badge" id="can_tri_' + i + '" style="display:none"></div>';
-      itemHtml += '<div class="tr-row' + (crafted?' on':'') + (can&&!crafted?' can':'') + '" id="tri_row_' + i + '" onclick="toggleTrapperItem(' + i + ')">' +
-        '<div class="tr-top"><div class="ick' + (crafted?' on':'') + '" id="ick_tri_' + i + '"></div><div class="tr-name">' + t[1] + '</div>' + badge + '</div>' +
+      const badge = '<span class="can-badge" id="can_tri_' + i + '" style="display:none"></span>';
+      itemHtml += '<div class="tr-row" id="tri_row_' + i + '" onclick="toggleTrapperItem(' + i + ')">' +
+        '<div class="tr-top"><div class="ick" id="ick_tri_' + i + '"></div><div class="tr-name">' + t[1] + '</div>' + badge + '</div>' +
         '<div class="tr-mats">' + chips + '</div></div>';
     });
     itemHtml += secBodyEnd();
@@ -844,13 +838,18 @@ function toggleTrOutfit(oi) {
   if (!pt) { alert('Select a playthrough first.'); return; }
   const outfit = TR_OUTFITS[oi];
   const allDone = outfit.pieces.every((_,pi) => D()['trp_' + oi + '_' + pi]);
-  outfit.pieces.forEach((_,pi) => {
-    const nowOn = !allDone;
+  const nowOn = !allDone;
+  outfit.pieces.forEach(([,pmats], pi) => {
+    const wasCrafted = !!D()['trp_' + oi + '_' + pi];
+    if (wasCrafted === nowOn) return; // no change
     setD('trp_' + oi + '_' + pi, nowOn ? true : null);
     document.getElementById('tr_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
     document.getElementById('ick_trp_' + oi + '_' + pi)?.classList.toggle('on', nowOn);
+    // Adjust inventory: crafting deducts, uncrafting restores
+    pmats.forEach(([m,q]) => bumpInv(m, nowOn ? -q : q));
   });
   checkOutfitDone(oi);
+  refreshTrapperCan();
   updateOverview();
 }
 
@@ -918,9 +917,15 @@ function refreshTrapperCan() {
       const badge = document.getElementById('can_' + oi + '_' + pi);
       if (row) row.classList.toggle('can', can && !crafted);
       if (badge) {
-        if (crafted) { badge.textContent='CRAFTED'; badge.style.background='var(--success)'; badge.style.color='#d0ffd8'; badge.style.display=''; }
-        else if (can) { badge.textContent='CAN CRAFT'; badge.style.background=''; badge.style.color=''; badge.style.display=''; }
-        else badge.style.display='none';
+        if (crafted) {
+          badge.textContent='CRAFTED'; badge.style.display='';
+          badge.className='can-badge crafted';
+        } else if (can) {
+          badge.textContent='CAN CRAFT'; badge.style.display='';
+          badge.className='can-badge can';
+        } else {
+          badge.style.display='none'; badge.className='can-badge';
+        }
       }
       pmats.forEach(([m,q]) => {
         const chip = document.getElementById('chip_' + oi + '_' + pi + '_' + slug(m));
@@ -935,9 +940,15 @@ function refreshTrapperCan() {
     const badge = document.getElementById('can_tri_' + i);
     if (row) row.classList.toggle('can', can && !crafted);
     if (badge) {
-      if (crafted) { badge.textContent='CRAFTED'; badge.style.background='var(--success)'; badge.style.color='#d0ffd8'; badge.style.display=''; }
-      else if (can) { badge.textContent='CAN CRAFT'; badge.style.background=''; badge.style.color=''; badge.style.display=''; }
-      else badge.style.display='none';
+      if (crafted) {
+        badge.textContent='CRAFTED'; badge.style.display='';
+        badge.className='can-badge crafted';
+      } else if (can) {
+        badge.textContent='CAN CRAFT'; badge.style.display='';
+        badge.className='can-badge can';
+      } else {
+        badge.style.display='none'; badge.className='can-badge';
+      }
     }
     t[2].forEach(([m,q]) => {
       const chip = document.getElementById('chip_tri_'+i+'_'+slug(m));
