@@ -949,10 +949,17 @@ function refreshTrapperCan() {
       pmats.forEach(([m,q]) => {
         const chip = document.getElementById('chip_' + oi + '_' + pi + '_' + slug(m));
         if (chip) {
-          const have=getInv(m);
-          const leg=isLegendaryMat(m);
-          chip.className='mat-chip '+(have>=q?'ok':'short');
-          chip.textContent=leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+          if (crafted) {
+            // Already crafted — show as satisfied regardless of current inventory
+            const leg=isLegendaryMat(m);
+            chip.className='mat-chip ok';
+            chip.textContent=leg ? m+' (✓)' : m+' (crafted)';
+          } else {
+            const have=getInv(m);
+            const leg=isLegendaryMat(m);
+            chip.className='mat-chip '+(have>=q?'ok':'short');
+            chip.textContent=leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+          }
         }
       });
     });
@@ -977,10 +984,16 @@ function refreshTrapperCan() {
     t[2].forEach(([m,q]) => {
       const chip = document.getElementById('chip_tri_'+i+'_'+slug(m));
       if (chip) {
-        const have=getInv(m);
-        const leg=isLegendaryMat(m);
-        chip.className='mat-chip '+(have>=q?'ok':'short');
-        chip.textContent=leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+        if (crafted) {
+          const leg=isLegendaryMat(m);
+          chip.className='mat-chip ok';
+          chip.textContent=leg ? m+' (✓)' : m+' (crafted)';
+        } else {
+          const have=getInv(m);
+          const leg=isLegendaryMat(m);
+          chip.className='mat-chip '+(have>=q?'ok':'short');
+          chip.textContent=leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
+        }
       }
     });
   });
@@ -1468,11 +1481,19 @@ function renderAllChecks() {
     document.getElementById(`mr_${hmId}`)?.classList.toggle('done', on);
   });
 
-  // trapper pieces
-  TR.forEach((t,i) => {
-    const on = !!d[`tr_${i}`];
-    document.getElementById(`tr_${i}`)?.classList.toggle('on', on);
-    document.getElementById(`ick_tr_${i}`)?.classList.toggle('on', on);
+  // trapper outfit pieces (trp_oi_pi) + individual items (tri_i)
+  TR_OUTFITS.forEach((outfit, oi) => {
+    outfit.pieces.forEach((_, pi) => {
+      const on = !!d[`trp_${oi}_${pi}`];
+      document.getElementById(`tr_${oi}_${pi}`)?.classList.toggle('on', on);
+      document.getElementById(`ick_trp_${oi}_${pi}`)?.classList.toggle('on', on);
+    });
+    checkOutfitDone(oi);
+  });
+  TR_ITEMS.forEach((_, i) => {
+    const on = !!d[`tri_${i}`];
+    document.getElementById(`tri_row_${i}`)?.classList.toggle('on', on);
+    document.getElementById(`ick_tri_${i}`)?.classList.toggle('on', on);
   });
 
   // legendary mat toggles — must restore here because buildTrapper runs before pt is set
@@ -1641,10 +1662,15 @@ function updateSectionProgress(d) {
     const items=EQ.map((e,i)=>({e,i})).filter(({e})=>e[0]===cat);
     setTxt(`eqp_${slug(cat)}`,`${items.filter(({i})=>d[`eq_${i}`]).length}/${items.length}`);
   });
-  // Trapper
-  [...new Set(TR.map(t=>t[0]))].forEach(cat=>{
-    const items=TR.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
-    setTxt(`trp_${slug(cat)}`,`${items.filter(({i})=>d[`tr_${i}`]).length}/${items.length}`);
+  // Trapper — outfit pieces use trp_oi_pi, individual items use tri_i
+  TR_OUTFITS.forEach((outfit, oi) => {
+    const done = outfit.pieces.filter((_,pi) => d[`trp_${oi}_${pi}`]).length;
+    setTxt(`trop_${oi}`, `${done}/${outfit.pieces.length}`);
+  });
+  [...new Set(TR_ITEMS.map(t=>t[0]))].forEach(cat => {
+    const items = TR_ITEMS.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
+    const done  = items.filter(({i})=>d[`tri_${i}`]).length;
+    setTxt(`trp_${slug(cat)}`, `${done}/${items.length}`);
   });
   // Pearson / Camp
   [...new Set(PE.map(p=>p[0]))].forEach(cat=>{
@@ -1762,7 +1788,8 @@ function exportCSV(){
   HO.forEach((h,i)=>['STUDIED','BONDED','RIDDEN'].forEach((f,j)=>rows.push([pt,`Horse-${h[0]}`,h[1],f,d[`ho_${i}_${j}`]?'Yes':'No'])));
   WE.forEach(([cat,name],i)=>rows.push([pt,`Weapon-${cat}`,name,'obtained',d[`we_${i}`]?'Yes':'No']));
   EQ.forEach(([cat,name],i)=>rows.push([pt,`Equipment-${cat}`,name,'obtained',d[`eq_${i}`]?'Yes':'No']));
-  TR.forEach(([cat,name],i)=>rows.push([pt,`Trapper-${cat}`,name,'crafted',d[`tr_${i}`]?'Yes':'No']));
+  TR_OUTFITS.forEach((outfit,oi)=>outfit.pieces.forEach(([pname],pi)=>rows.push([pt,`Trapper-${outfit.name}`,pname,'crafted',d[`trp_${oi}_${pi}`]?'Yes':'No'])));
+  TR_ITEMS.forEach(([cat,name],i)=>rows.push([pt,`Trapper-${cat}`,name,'crafted',d[`tri_${i}`]?'Yes':'No']));
   PE.forEach(([cat,name,reqs],i)=>reqs.forEach(([m],ri)=>rows.push([pt,`Pearson-${cat}`,name,m,d[`pe_${i}_r${ri}`]?'Yes':'No'])));
   Object.entries(CH).forEach(([set,tasks])=>tasks.forEach(([lvl,req],i)=>rows.push([pt,`Challenge-${set}`,req,lvl,d[`ch_${slug(set)}_${i}`]?'Yes':'No'])));
   Object.entries(ST).forEach(([ch,ms])=>ms.forEach((m,i)=>rows.push([pt,`Story-${ch}`,m,'medal',d[`st_${slug(ch)}_${i}`]||'none'])));
