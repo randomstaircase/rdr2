@@ -532,7 +532,7 @@ const TR_OUTFITS = [
   { name:'The Wrangler', pieces:[
     ['Goat Flop Hat',                       [['Pronghorn Hide',1],['Goat Hide',1]]],
     ["Trapper's Cloak",                     [['Sheep Hide',1]]],
-    ["No-Man's Vest",                       [['Panther Hide',1],['Goat Hide',1]]],
+    ["No-Man's Vest",                       [['Panther Pelt',1],['Goat Hide',1]]],
     ['Two Toned Moccasins',                 [['Buck Pelt',1]]],
     ['Moose Range Gloves',                  [['Moose Pelt',1]]],
   ]},
@@ -559,7 +559,7 @@ const TR_OUTFITS = [
   { name:'The Desperado', pieces:[
     ['Beaver Drifter Hat',                  [['Beaver Pelt',2]]],
     ['Wolf Coat',                           [['Ram Hide',1],['Wolf Pelt',1]]],
-    ['Billy Vest',                          [['Armadillo Skin',1],['Goat Hide',1]]],
+    ['Billy Vest',                          [['Armadillo Skin',2],['Goat Hide',1]]],
     ['Boar and Bull Fowler Boots',          [['Ox Hide',1],['Boar Pelt',1]]],
     ['Winter Cavalry Gloves',               [['Rabbit Pelt',1],['Muskrat Pelt',2]]],
   ]},
@@ -582,19 +582,19 @@ const TR_OUTFITS = [
 const TR_ITEMS = [
   // HATS
   ['HATS','Badger Mountain Hat',            [['Badger Pelt',1]]],
-  ['HATS','Bear Grenadier Hat',             [['Bear Pelt',1]]],
+  ['HATS','Bear Grenadier Hat',             [['Black Bear Pelt',1]]],
   ['HATS','Beaver Mountain Hat',            [['Beaver Pelt',1]]],
-  ['HATS',"Bison Gambler's Hat",            [['Bison Pelt',1]]],
-  ['HATS','Deer Cavalry Hat',               [['Deer Pelt',1]]],
+  ['HATS',"Bison Gambler's Hat",            [['Bison Pelt',1],['Robin Feather',4],['Oriole Feather',4]]],
+  ['HATS','Deer Cavalry Hat',               [['Deer Pelt',1],['Raven Feather',10]]],
   ['HATS','Fox Mountain Hat',               [['Fox Pelt',1]]],
-  ['HATS',"Gila Monster Gambler's Hat",     [['Gila Monster Skin',1]]],
-  ['HATS','Iguana Big Valley Hat',          [['Iguana Skin',1]]],
-  ['HATS','Pronghorn Flop Hat',             [['Pronghorn Hide',1]]],
-  ['HATS','Rat Flat Cap',                   [['Rat Skin',2]]],
-  ['HATS','Rat Infantry Hardee Hat',        [['Rat Skin',2]]],
+  ['HATS',"Gila Monster Gambler's Hat",     [['Elk Pelt',1],['Gila Monster Skin',1]]],
+  ['HATS','Iguana Big Valley Hat',          [['Cow Hide',1],['Iguana Skin',1]]],
+  ['HATS','Pronghorn Flop Hat',             [['Pronghorn Hide',1],['Opossum Pelt',4]]],
+  ['HATS','Rat Flat Cap',                   [['Rat Skin',10]]],
+  ['HATS','Rat Infantry Hardee Hat',        [['Goat Hide',1],['Rat Skin',6]]],
   ['HATS','Skunk Mountain Hat',             [['Skunk Pelt',1]]],
-  ['HATS','Snake Bulldogger Hat',           [['Snake Skin',1]]],
-  ['HATS','Squirrel Flat Cap',              [['Squirrel Pelt',1]]],
+  ['HATS','Snake Bulldogger Hat',           [['Sheep Hide',1],['Snake Skin',1]]],
+  ['HATS','Squirrel Flat Cap',              [['Squirrel Pelt',6]]],
   // ACCESSORIES (feather-based)
   ['ACCESSORIES','Glorious Accessory',      [['Oriole Feather',1],['Woodpecker Feather',4]]],
   ['ACCESSORIES','Homestead Accessory',     [['Chicken Feather',1],['Goose Feather',2]]],
@@ -609,31 +609,31 @@ const TR_ITEMS = [
   ['ACCESSORIES','Scavenger Accessory',     [['Vulture Feather',1],['Seagull Feather',1]]],
   ['ACCESSORIES','Stalker Accessory',       [['Loon Feather',2],['Condor Feather',1],['Raven Feather',3]]],
   // VESTS
-  ['VESTS','Hinterland Vest',               [['Loon Feather',2],['Elk Pelt',1]]],
-  ['VESTS','Rugged Wrangler Vest',          [['Oriole Feather',3],['Goose Feather',1]]],
-  ['VESTS','Rustic Vest',                   [['Owl Feather',1],['Pheasant Feather',2]]],
+  ['VESTS','Hinterland Vest',               [['Ram Hide',1]]],
+  ['VESTS','Rugged Wrangler Vest',          [['Pig Hide',1]]],
+  ['VESTS','Rustic Vest',                   [['Cougar Pelt',1]]],
   // CHAPS
-  ['CHAPS','Batwing Chaps',                 [['Opossum Pelt',1],['Muskrat Pelt',1]]],
-  ['CHAPS','Bear Batwing Chaps',            [['Bear Pelt',1],['Bison Pelt',1]]],
-  ['CHAPS','Bear Fringed Shotgun Chaps',    [['Bear Pelt',1],['Squirrel Pelt',1]]],
-  ['CHAPS','Deer Pelt Half Chaps',          [['Deer Pelt',2]]],
+  ['CHAPS','Batwing Chaps',                 [['Deer Pelt',1]]],
+  ['CHAPS','Bear Batwing Chaps',            [['Bear Pelt',1]]],
+  ['CHAPS','Bear Fringed Shotgun Chaps',    [['Black Bear Pelt',1]]],
+  ['CHAPS','Deer Pelt Half Chaps',          [['Deer Pelt',1]]],
   ['CHAPS','Elk Fringed Shotgun Chaps',     [['Elk Pelt',1],['Rabbit Pelt',1]]],
   ['CHAPS','Moose Batwing Chaps',           [['Moose Pelt',1],['Sheep Hide',1]]],
-  ['CHAPS','Muskrat Half Chaps',            [['Muskrat Pelt',3]]],
+  ['CHAPS','Muskrat Half Chaps',            [['Muskrat Pelt',2]]],
   ['CHAPS','Ox Fringed Shotgun Chaps',      [['Ox Hide',1],['Rabbit Pelt',1]]],
   ['CHAPS','Sheep Batwing Chaps',           [['Sheep Hide',2]]],
   // BOOTS
   ['BOOTS','Javelina Moccasins',            [['Peccary Pelt',2]]],
-  ['BOOTS','Moccasins',                     [['Boar Pelt',1],['Ram Hide',1]]],
+  ['BOOTS','Moccasins',                     [['Buck Pelt',1]]],
   ['BOOTS','Skunk Trapper Boots',           [['Skunk Pelt',2],['Rabbit Pelt',1]]],
   // SADDLES
   ['SADDLES','Alligator Ranch Cutter',      [['Alligator Skin',1]]],
   ['SADDLES','Bear Dakota Saddle',          [['Bear Pelt',1]]],
   ['SADDLES','Beaver Roping Saddle',        [['Beaver Pelt',2]]],
-  ['SADDLES','Boar Mother Hubbard Saddle',  [['Boar Pelt',2]]],
+  ['SADDLES','Boar Mother Hubbard Saddle',  [['Boar Pelt',1]]],
   ['SADDLES','Cougar McClelland Saddle',    [['Cougar Pelt',1]]],
   ['SADDLES','Panther Trail Saddle',        [['Panther Pelt',1]]],
-  ['SADDLES','Rattlesnake Vaquero Saddle',  [['Snake Skin',2]]],
+  ['SADDLES','Rattlesnake Vaquero Saddle',  [['Snake Skin',10]]],
 ];
 
 // Keep TR for backward compat (used in overview counts, export, etc.)
@@ -1249,32 +1249,34 @@ const GRAVES = [
 
 // HUNTING REQUESTS (5 request lists)
 const HUNTING_REQUESTS = [
-  {list:'Request 1 (Poster at Train Station)', animals:[
-    ['Oriole Carcass (Perfect)','Baltimore or Hooded Oriole'],
+  {list:'Request 1 — Valentine (Post Office)', animals:[
+    ['Rabbit Carcass (Perfect)','Eastern Cottontail or Desert Cottontail'],
+    ['Squirrel Carcass (Perfect)','Eastern Gray Squirrel'],
+  ]},
+  {list:'Request 2 — Strawberry (via Mail)', animals:[
+    ['Cardinal Carcass (Perfect)','Northern Cardinal'],
+    ['Rat Carcass (Perfect)','Norway Rat'],
     ['Woodpecker Carcass (Perfect)','Red-Bellied or Pileated Woodpecker'],
+  ]},
+  {list:'Request 3 — Rhodes (via Mail)', animals:[
+    ['Chipmunk Carcass (Perfect)','Western Chipmunk'],
+    ['Opossum Carcass (Perfect)','Virginia Opossum'],
+    ['Oriole Carcass (Perfect)','Baltimore or Hooded Oriole'],
     ['Robin Carcass (Perfect)','American Robin'],
   ]},
-  {list:'Request 2 (via Mail)', animals:[
-    ['Squirrel Carcass (Perfect)','Eastern Gray Squirrel'],
-    ['Chipmunk Carcass (Perfect)','Western Chipmunk'],
-    ['Rat Carcass (Perfect)','Norway Rat'],
-    ['Toad Carcass (Perfect)','American Bullfrog'],
-  ]},
-  {list:'Request 3 (via Mail)', animals:[
-    ['Cardinal Carcass (Perfect)','Northern Cardinal'],
-    ['Blue Jay Carcass (Perfect)','Blue Jay'],
-    ['Bluegill (Perfect)','Bluegill Fish'],
-  ]},
-  {list:'Request 4 (via Mail)', animals:[
-    ['Bat Carcass (Perfect)','Little Brown Bat'],
-    ['Opossum Carcass (Perfect)','Virginia Opossum'],
+  {list:'Request 4 — Saint Denis (via Mail)', animals:[
+    ['Songbird Carcass (Perfect)','American Robin Songbird or similar'],
+    ['Sparrow Carcass (Perfect)','Song Sparrow or similar'],
+    ['Toad Carcass (Perfect)','American Toad'],
     ['Bullfrog Carcass (Perfect)','American Bullfrog'],
+    ['Skunk Carcass (Perfect)','Striped Skunk'],
   ]},
-  {list:'Request 5 (Epilogue — via Mail)', animals:[
-    ['Iguana Skin (Perfect)','Green or Desert Iguana'],
-    ['Skunk Pelt (Perfect)','Striped Skunk'],
-    ['Snapping Turtle (Perfect)','Common Snapping Turtle'],
-    ['Heron Carcass (Perfect)','Great Blue Heron'],
+  {list:'Request 5 — Van Horn (Epilogue, via Mail)', animals:[
+    ['Cedar Waxwing Carcass (Perfect)','Cedar Waxwing'],
+    ['Bat Carcass (Perfect)','Little Brown Bat'],
+    ['Blue Jay Carcass (Perfect)','Blue Jay'],
+    ['Crow Carcass (Perfect)','American Crow'],
+    ['Beaver Carcass (Perfect)','American Beaver'],
   ]},
 ];
 
