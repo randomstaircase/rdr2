@@ -780,7 +780,7 @@ function buildTrapper() {
   invHtml += '</div>';
 
   invGroups.forEach((g,gi) => {
-    invHtml += '<div class="inv-group-panel' + (gi===0?' active':'') + '" id="invg_' + g.id + '">';
+    invHtml += '<div class="inv-group-panel ' + g.id + (gi===0?' active':'') + '" id="invg_' + g.id + '">';
     invHtml += '<div class="ig">';
     g.mats.forEach(mat => { invHtml += invItem(mat, g.leg); });
     invHtml += '</div></div>';
@@ -1243,6 +1243,7 @@ function buildCollections() {
     pillHtml += `<button class="pill-btn${i===0?' active':''}" id="cnav_${s.id}" onclick="showCollSection('${s.id}')">` +
       `${s.label} <span class="pill-count" id="cnavct_${s.id}">0/${s.count}</span></button>`;
   });
+  pillHtml += '<button class="btn btn-ghost" id="coll-collapse-btn" style="margin-left:auto;" onclick="toggleCollAll()">Collapse All</button>';
   pillHtml += '</div>';
 
   let contentHtml = '';
@@ -1362,6 +1363,26 @@ function showCollSection(id) {
   document.querySelectorAll('.pill-btn[id^="cnav_"]').forEach(b => b.classList.remove('active'));
   document.getElementById('cs_' + id)?.classList.add('active');
   document.getElementById('cnav_' + id)?.classList.add('active');
+  // Reset collapse button label for new section
+  const btn = document.getElementById('coll-collapse-btn');
+  if (btn) btn.textContent = 'Collapse All';
+}
+function toggleCollAll() {
+  // Collapse/expand all open coll-hdr/coll-body pairs in the active coll-section
+  const active = document.querySelector('.coll-section.active');
+  if (!active) return;
+  const hdrs = active.querySelectorAll('.coll-hdr');
+  if (!hdrs.length) return;
+  const anyOpen = [...hdrs].some(h => h.classList.contains('open'));
+  const btn = document.getElementById('coll-collapse-btn');
+  hdrs.forEach(h => {
+    h.classList.toggle('open', !anyOpen);
+    const sid = h.id.replace(/^(cigh_|chb_|sth_)/,'');
+    // find matching body
+    const body = h.nextElementSibling;
+    if (body && body.classList.contains('coll-body')) body.classList.toggle('open', !anyOpen);
+  });
+  if (btn) btn.textContent = anyOpen ? 'Expand All' : 'Collapse All';
 }
 
 function updateCollectionCounts() {
