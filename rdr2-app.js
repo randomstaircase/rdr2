@@ -748,34 +748,46 @@ function buildEquip() {
 function buildTrapper() {
   const el = document.getElementById('tab-trapper');
 
-  function invGroup(title, mats, gid, isLeg) {
-    let h = '<div class="inv-group-hdr" onclick="var b=document.getElementById(\'ig_' + gid + '\');b.classList.toggle(\'open\');this.classList.toggle(\'open\')"><span class="coll-arrow">▶</span><span>' + title + '</span></div>';
-    h += '<div class="coll-body" id="ig_' + gid + '">';
-    mats.forEach(mat => {
-      if (isLeg) {
-        // Legendary: toggle (hunted or not)
-        const have = getInv(mat) > 0;
-        h += '<div class="inv-item" style="cursor:pointer;" onclick="toggleLegMat(\'' + mat + '\')">' +
-          '<span class="inv-name' + (have ? ' inv-have' : '') + '" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
-          '<div class="mb' + (have ? ' on' : '') + '" id="leg-mb-' + slug(mat) + '"></div>' +
-          '</div>';
-      } else {
-        const v = getInv(mat);
-        h += '<div class="inv-item"><span class="inv-name" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
-          '<div class="inv-counter" id="inv-' + slug(mat) + '" onclick="bumpInv(\'' + mat + '\',1)" oncontextmenu="event.preventDefault();bumpInv(\'' + mat + '\',-1)" title="Click +1 · Right-click −1">' +
-          '<span class="inv-minus" onclick="event.stopPropagation();bumpInv(\'' + mat + '\',-1)">−</span>' +
-          '<span class="inv-num" id="inv-num-' + slug(mat) + '">' + v + '</span>' +
-          '<span class="inv-plus">+</span></div></div>';
-      }
-    });
-    return h + '</div>';
+  // ── Inventory pill tabs ──
+  function invItem(mat, isLeg) {
+    if (isLeg) {
+      const have = getInv(mat) > 0;
+      return '<div class="inv-item" style="cursor:pointer;" onclick="toggleLegMat(\'' + mat + '\')">' +
+        '<span class="inv-name' + (have ? ' inv-have' : '') + '" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
+        '<div class="mb' + (have ? ' on' : '') + '" id="leg-mb-' + slug(mat) + '"></div></div>';
+    } else {
+      const v = getInv(mat);
+      return '<div class="inv-item"><span class="inv-name" id="inv-name-' + slug(mat) + '">' + mat + '</span>' +
+        '<div class="inv-counter" onclick="bumpInv(\'' + mat + '\',1)" oncontextmenu="event.preventDefault();bumpInv(\'' + mat + '\',-1)" title="Click +1 · Right-click −1">' +
+        '<span class="inv-minus" onclick="event.stopPropagation();bumpInv(\'' + mat + '\',-1)">−</span>' +
+        '<span class="inv-num" id="inv-num-' + slug(mat) + '">' + v + '</span>' +
+        '<span class="inv-plus">+</span></div></div>';
+    }
   }
 
-  let invHtml = '<div class="inv-panel" id="inv-panel"><div class="inv-title">✦ INVENTORY</div>' +
-    invGroup('Animals', TR_MATS_ANIMALS, 'animals', false) +
-    invGroup('Feathers', TR_MATS_FEATHERS, 'feathers', false) +
-    invGroup('Legendary', TR_MATS_LEGENDARY, 'legendary', true) + '</div>';
+  const invGroups = [
+    { id:'animals',  label:'Animals',          mats: TR_MATS_ANIMALS,   leg: false },
+    { id:'feathers', label:'Feathers',         mats: TR_MATS_FEATHERS,  leg: false },
+    { id:'legendary',label:'Legendary Animals',mats: TR_MATS_LEGENDARY, leg: true  },
+  ];
 
+  let invHtml = '<div id="inv-panel" style="margin-bottom:1rem;">' +
+    '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem;">' +
+    '<span style="font-family:var(--font-d);font-size:.75rem;letter-spacing:.08em;color:var(--gold);">✦ INVENTORY</span>';
+  invGroups.forEach((g,gi) => {
+    invHtml += '<button class="pill-btn' + (gi===0?' active':'') + '" id="invpill_' + g.id + '" onclick="showInvGroup(\'' + g.id + '\')">' + g.label + '</button>';
+  });
+  invHtml += '</div>';
+
+  invGroups.forEach((g,gi) => {
+    invHtml += '<div class="inv-group-panel' + (gi===0?' active':'') + '" id="invg_' + g.id + '">';
+    invHtml += '<div class="ig">';
+    g.mats.forEach(mat => { invHtml += invItem(mat, g.leg); });
+    invHtml += '</div></div>';
+  });
+  invHtml += '</div>';
+
+  // ── Crafting items ──
   let itemHtml = '<div id="tr-items"><div style="display:flex;justify-content:flex-end;margin-bottom:.6rem;">' +
     '<button class="btn btn-ghost" id="btn-toggle-trapper" onclick="toggleAllSec(\'tab-trapper\',\'btn-toggle-trapper\')">Collapse All</button></div>';
 
@@ -783,21 +795,15 @@ function buildTrapper() {
   itemHtml += secHdr('Garment Sets (16 Outfits)', 'trp_outfits', TR_OUTFITS.length);
   itemHtml += secBody('trp_outfits');
   TR_OUTFITS.forEach((outfit, oi) => {
-    const d = {};  // empty at build time; renderAllChecks fills in real state
-    const donePieces = 0;
-    const allDone = false;
     itemHtml += '<div class="tr-outfit" id="tro_wrap_' + oi + '">' +
-      '<div class="tr-outfit-hdr' + (allDone?' on':'') + '" onclick="toggleTrOutfit(' + oi + ')">' +
-      '<div class="ick' + (allDone?' on':'') + '" id="ick_tro_' + oi + '"></div>' +
+      '<div class="tr-outfit-hdr" onclick="toggleTrOutfit(' + oi + ')">' +
+      '<div class="ick" id="ick_tro_' + oi + '"></div>' +
       '<span class="tr-outfit-name">' + outfit.name + '</span>' +
-      '<span class="tr-outfit-prog" id="trop_' + oi + '">' + donePieces + '/' + outfit.pieces.length + '</span>' +
+      '<span class="tr-outfit-prog" id="trop_' + oi + '">0/' + outfit.pieces.length + '</span>' +
       '</div><div class="tr-outfit-body" id="trob_' + oi + '">';
     outfit.pieces.forEach(([pname, pmats], pi) => {
-      const crafted = false;
-      const can = false;
       const chips = pmats.map(([m,q]) => {
-        const have = getInv(m);
-        const leg = isLegendaryMat(m);
+        const have = getInv(m); const leg = isLegendaryMat(m);
         const label = leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
         return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_' + oi + '_' + pi + '_' + slug(m) + '">' + label + '</span>';
       }).join('');
@@ -817,12 +823,10 @@ function buildTrapper() {
     const items = TR_ITEMS.map((t,i)=>({t,i})).filter(({t})=>t[0]===cat);
     itemHtml += secHdr(cat, 'trp_' + slug(cat), items.length);
     itemHtml += secBody('trp_' + slug(cat));
+    itemHtml += '<div class="ig">';
     items.forEach(({t,i}) => {
-      const crafted = false;  // filled by renderAllChecks
-      const can = false;      // filled by refreshTrapperCan
       const chips = t[2].map(([m,q]) => {
-        const have = getInv(m);
-        const leg = isLegendaryMat(m);
+        const have = getInv(m); const leg = isLegendaryMat(m);
         const label = leg ? m+' ('+(have?'✓':'✗')+')' : m+' ('+have+'/'+q+')';
         return '<span class="mat-chip ' + (have>=q?'ok':'short') + '" id="chip_tri_' + i + '_' + slug(m) + '">' + label + '</span>';
       }).join('');
@@ -831,11 +835,19 @@ function buildTrapper() {
         '<div class="tr-top"><div class="ick" id="ick_tri_' + i + '"></div><div class="tr-name">' + t[1] + '</div>' + badge + '</div>' +
         '<div class="tr-mats">' + chips + '</div></div>';
     });
+    itemHtml += '</div>';
     itemHtml += secBodyEnd();
   });
   itemHtml += '</div>';
 
-  el.innerHTML = '<div class="trapper-layout" style="display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start;">' + invHtml + itemHtml + '</div>';
+  el.innerHTML = invHtml + itemHtml;
+}
+
+function showInvGroup(id) {
+  document.querySelectorAll('.inv-group-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.pill-btn[id^="invpill_"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('invg_' + id)?.classList.add('active');
+  document.getElementById('invpill_' + id)?.classList.add('active');
 }
 
 function toggleTrOutfit(oi) {
@@ -1225,16 +1237,15 @@ function buildCollections() {
   const el = document.getElementById('tab-collections');
   if (!el) return;
 
-  let navHtml = '<div class="coll-nav-panel">';
-  COLL_SECTIONS.forEach(s => {
-    navHtml += `<div class="coll-nav-item" id="cnav_${s.id}" onclick="showCollSection('${s.id}')">
-      <span>${s.label}</span>
-      <span class="coll-nav-count" id="cnavct_${s.id}">0/${s.count}</span>
-    </div>`;
+  // Pill nav
+  let pillHtml = '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.9rem;">';
+  COLL_SECTIONS.forEach((s,i) => {
+    pillHtml += `<button class="pill-btn${i===0?' active':''}" id="cnav_${s.id}" onclick="showCollSection('${s.id}')">` +
+      `${s.label} <span class="pill-count" id="cnavct_${s.id}">0/${s.count}</span></button>`;
   });
-  navHtml += '</div>';
+  pillHtml += '</div>';
 
-  let contentHtml = '<div class="coll-content-panel">';
+  let contentHtml = '';
 
   // Cigarette Cards
   contentHtml += '<div class="coll-section active" id="cs_cigs">';
@@ -1342,15 +1353,13 @@ function buildCollections() {
   });
   contentHtml += '</div>';
 
-  contentHtml += '</div>'; // end coll-content-panel
-  el.innerHTML = `<div class="coll-tab-layout">${navHtml}${contentHtml}</div>`;
-  document.getElementById('cnav_cigs')?.classList.add('active');
+  el.innerHTML = pillHtml + contentHtml;
   updateCollectionCounts();
 }
 
 function showCollSection(id) {
   document.querySelectorAll('.coll-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.coll-nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.pill-btn[id^="cnav_"]').forEach(b => b.classList.remove('active'));
   document.getElementById('cs_' + id)?.classList.add('active');
   document.getElementById('cnav_' + id)?.classList.add('active');
 }
