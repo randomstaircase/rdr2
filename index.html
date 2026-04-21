@@ -234,16 +234,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .inv-group-hdr.open .coll-arrow{transform:rotate(90deg);}
 
 /* COLLECTIONS */
-.coll-tab-layout{display:grid;grid-template-columns:220px 1fr;gap:1rem;align-items:start;}
-.coll-nav-panel{background:var(--panel);border:1px solid var(--border2);border-radius:6px;overflow:hidden;position:sticky;top:var(--sticky-top,180px);}
-.coll-nav-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;
-  font-family:var(--font-d);font-size:.75rem;letter-spacing:.06em;color:var(--muted);
-  border-bottom:1px solid var(--border2);transition:all .12s;user-select:none;}
-.coll-nav-item:last-child{border-bottom:none;}
-.coll-nav-item:hover{background:var(--panel2);color:var(--straw);}
-.coll-nav-item.active{background:rgba(232,176,32,.1);color:var(--straw);border-left:2px solid var(--gold);}
-.coll-nav-count{font-size:10px;color:var(--muted2);}
-.coll-content-panel{min-width:0;}
+/* coll-tab-layout removed — now pill tabs */
 .coll-section{display:none;}
 .coll-section.active{display:block;}
 
@@ -270,10 +261,7 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 .pe-req:hover{border-color:var(--border);color:var(--text);}
 .pe-req-name{font-size:11px;}
 
-/* TRAPPER LAYOUT */
-.trapper-layout{display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start;}
-.inv-panel{background:var(--panel);border:1px solid var(--border2);border-radius:4px;padding:.6rem;
-  position:sticky;top:var(--sticky-top,180px);}
+/* trapper-layout removed — now full-width with pill tabs */
 .inv-item{display:flex;align-items:center;justify-content:space-between;padding:3px 4px;font-size:12px;color:var(--text);gap:6px;}
 .inv-name{flex:1;font-size:12px;}
 .inv-counter{display:flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--border2);
@@ -333,6 +321,18 @@ main{padding:1.25rem 1.5rem;max-width:1500px;margin:0 auto;}
 
 @media(max-width:900px){.trapper-layout{grid-template-columns:1fr;}.inv-panel{position:static;}.coll-tab-layout{grid-template-columns:1fr;}}
 @media(max-width:700px){header{flex-direction:column;align-items:flex-start;padding:.6rem 1rem;min-height:auto;}main{padding:.9rem 1rem;}.mc{width:52px;}}
+
+/* PILL NAV (Trapper inventory + Collections) */
+.pill-btn{font-family:var(--font-d);font-size:10px;font-weight:600;letter-spacing:.06em;
+  padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;
+  color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.pill-btn:hover{border-color:var(--border);color:var(--straw);}
+.pill-btn.active{background:rgba(232,176,32,.13);border-color:rgba(232,176,32,.5);color:var(--straw);}
+.pill-count{font-size:9px;opacity:.75;margin-left:3px;}
+.inv-group-panel{display:none;}
+.inv-group-panel.active{display:block;}
+.inv-group-panel .ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:3px;}
+[data-theme="adobe"] .pill-btn.active{background:rgba(154,80,32,.15);border-color:rgba(154,80,32,.5);color:var(--straw);}
 </style>
 </head>
 <body>
